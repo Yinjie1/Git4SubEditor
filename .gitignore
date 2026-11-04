@@ -1,5 +1,7 @@
 # ===== 本项目 =====
 *.png
+# git4subeditor 导出的预览图需要纳入版本控制
+!*.preview.png
 *.sub
 *.code-workspace
 filelist.xml
@@ -42,6 +44,7 @@ htmlcov/
 .nox/
 .hypothesis/
 test
+tests
 
 # ===== 类型检查 / Lint 缓存 =====
 .mypy_cache/

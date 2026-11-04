@@ -1,0 +1,13 @@
+* text=auto
+
+# Exported submarine XML is line-oriented and should keep LF endings.
+*.xml text eol=lf
+
+# Compiled submarines and preview images are binary.
+*.sub binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.bmp binary

@@ -28,6 +28,9 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/git4subeditor"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.ruff]
 target-version = "py313"
 line-length = 88

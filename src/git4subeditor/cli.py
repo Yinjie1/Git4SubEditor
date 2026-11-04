@@ -4,49 +4,121 @@ import argparse
 import sys
 from pathlib import Path
 
+from git4subeditor import __version__
+from git4subeditor.gitformat import export_sub, pack_sub
 from git4subeditor.subfile import SubFileError, unpack_sub
+
+_COMMANDS: tuple[str, ...] = ("unpack", "export", "pack")
 
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the command-line argument parser."""
     parser = argparse.ArgumentParser(
-        description="Extract Barotrauma .sub files (gzip-compressed XML).",
+        prog="git4subeditor",
+        description=(
+            "Convert Barotrauma .sub files to and from Git-friendly XML bundles."
+        ),
     )
     parser.add_argument(
-        "inputs",
-        nargs="+",
-        type=Path,
-        help="one or more .sub files",
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
-    parser.add_argument(
+    subparsers = parser.add_subparsers(
+        dest="command",
+        required=True,
+        metavar="command",
+    )
+
+    unpack = subparsers.add_parser(
+        "unpack",
+        help="extract raw XML from .sub files",
+    )
+    _add_inputs(unpack, "one or more .sub files")
+    unpack.add_argument(
         "-o",
         "--output-dir",
         type=Path,
         default=None,
         help="output directory, defaults to each input file's directory",
     )
-    parser.add_argument(
+    unpack.add_argument(
         "--encoding",
         default=None,
         help="force an XML encoding instead of auto-detecting UTF-8/UTF-16",
     )
-    parser.add_argument(
+    unpack.add_argument(
         "--stdout",
         action="store_true",
         help="print XML to stdout instead of writing a file",
     )
-    parser.add_argument(
+    unpack.add_argument(
         "--no-validate",
         action="store_true",
         help="skip the XML well-formedness check",
     )
+    _add_force(unpack)
+
+    export = subparsers.add_parser(
+        "export",
+        help="export a .sub file as canonical XML plus a preview image",
+    )
+    _add_inputs(export, "one or more .sub files")
+    export.add_argument(
+        "-o",
+        "--output-dir",
+        type=Path,
+        default=None,
+        help="output directory, defaults to each input file's directory",
+    )
+    export.add_argument(
+        "--sort-attributes",
+        action="store_true",
+        help="sort XML attributes alphabetically for more stable diffs",
+    )
+    _add_force(export)
+
+    pack = subparsers.add_parser(
+        "pack",
+        help="pack an exported XML file back into a .sub file",
+    )
+    _add_inputs(pack, "one or more exported XML files")
+    pack.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=None,
+        help=(
+            "output .sub file, or an existing directory; defaults to the XML "
+            "file's directory"
+        ),
+    )
+    pack.add_argument(
+        "--sort-attributes",
+        action="store_true",
+        help="sort XML attributes alphabetically before packing",
+    )
+    _add_force(pack)
+
+    return parser
+
+
+def _add_inputs(
+    parser: argparse.ArgumentParser,
+    help_text: str,
+) -> None:
+    """Add the positional input list to a subcommand parser."""
+    parser.add_argument("inputs", nargs="+", type=Path, help=help_text)
+
+
+def _add_force(parser: argparse.ArgumentParser) -> None:
+    """Add the shared --force option to a subcommand parser."""
     parser.add_argument(
         "-f",
         "--force",
         action="store_true",
         help="overwrite existing output files",
     )
-    return parser
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -58,23 +130,62 @@ def main(argv: list[str] | None = None) -> int:
     Returns:
         Process exit code: 0 on success, 1 if any input failed, 2 on bad usage.
     """
-    args = build_parser().parse_args(argv)
+    raw_args: list[str] = list(sys.argv[1:] if argv is None else argv)
+    if raw_args and not raw_args[0].startswith("-") and raw_args[0] not in _COMMANDS:
+        # Keep the original `git4subeditor file.sub` form working.
+        raw_args.insert(0, "unpack")
 
-    if args.stdout and len(args.inputs) > 1:
+    args = build_parser().parse_args(raw_args)
+
+    if args.command == "unpack" and args.stdout and len(args.inputs) > 1:
         print("error: --stdout accepts only one input file", file=sys.stderr)
+        return 2
+
+    if (
+        args.command == "pack"
+        and args.output is not None
+        and len(args.inputs) > 1
+        and not args.output.is_dir()
+    ):
+        print(
+            "error: --output must be an existing directory when packing multiple files",
+            file=sys.stderr,
+        )
         return 2
 
     errors: int = 0
     for src in args.inputs:
         try:
-            unpack_sub(
-                src,
-                args.output_dir,
-                encoding=args.encoding,
-                force=args.force,
-                to_stdout=args.stdout,
-                validate=not args.no_validate,
-            )
+            if args.command == "unpack":
+                unpack_sub(
+                    src,
+                    args.output_dir,
+                    encoding=args.encoding,
+                    force=args.force,
+                    to_stdout=args.stdout,
+                    validate=not args.no_validate,
+                )
+            elif args.command == "export":
+                result = export_sub(
+                    src,
+                    args.output_dir,
+                    force=args.force,
+                    sort_attributes=args.sort_attributes,
+                )
+                preview = (
+                    f", preview: {result.preview_path.name}"
+                    if result.preview_path is not None
+                    else ", no preview"
+                )
+                print(f"{src.name} -> {result.xml_path}{preview}")
+            else:
+                dst = pack_sub(
+                    src,
+                    args.output,
+                    force=args.force,
+                    sort_attributes=args.sort_attributes,
+                )
+                print(f"{src.name} -> {dst}")
         except SubFileError as exc:
             print(f"error: {exc}", file=sys.stderr)
             errors += 1

@@ -1,5 +1,16 @@
 """Utilities for version-controlling Barotrauma submarine files."""
 
+from git4subeditor.gitformat import (
+    PREVIEW_ATTRIBUTE,
+    ExportResult,
+    embed_preview_image,
+    export_sub,
+    extract_preview_image,
+    find_preview_image,
+    pack_sub,
+    parse_xml,
+    serialize_xml,
+)
 from git4subeditor.subfile import (
     SubFileError,
     decode_xml,
@@ -10,10 +21,19 @@ from git4subeditor.subfile import (
 )
 
 __all__ = [
+    "PREVIEW_ATTRIBUTE",
+    "ExportResult",
     "SubFileError",
     "decode_xml",
     "decompress_sub",
+    "embed_preview_image",
+    "export_sub",
+    "extract_preview_image",
+    "find_preview_image",
+    "pack_sub",
+    "parse_xml",
     "read_sub_bytes",
+    "serialize_xml",
     "unpack_sub",
     "validate_xml",
 ]
