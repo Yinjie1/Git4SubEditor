@@ -4,7 +4,10 @@
 一个 CLI 工具, 把 Barotrauma 的 `.sub` 潜艇文件转换为适合 Git 版本追踪的文本格式, 也支持将其转回 `.sub` 文件.
 
 > [!warning]
-> 该程序是 Vibe Coding 的产物, 我正在对代码进行 review 和测试, 但测试可能并未覆盖所有可能出现的异常; 如果你打算将此程序应用于你正在开发的项目, 请先进行**备份**, 以免发生不可挽回的灾难性事故
+> 该程序是 Vibe Coding 的产物, 我正在对代码进行 review 和测试, 但测试可能并未覆盖所有可能出现的异常; 如果你打算将此程序应用于你正在开发的项目, 请先进行**备份**, 以免发生不可挽回的灾难性事故.
+
+> [!todo]
+> 我希望能集成一个Git GUI到游戏中, 并直接在潜艇编辑器中可视化不同版本潜艇的差异, 但我不熟悉这个游戏的接口, 也不会C#/Lua, 如果有感兴趣的大佬可以试试.
 
 ## 为什么需要 Git
 1. Git 的版本控制, 并不是每个版本都备份一个副本, 而是记录两个版本间的 diff, 这样不仅版本仓库体积非常小, 而且可以很方便地看出每次都做了哪些改动.
@@ -89,7 +92,7 @@ git4subeditor export "test.sub"
 
 ### 2. 用 Git 管理 XML
 > [!tip]
-> 要是实在不会, 就让 ai 帮忙弄, ai 都懂得用 Git. 像提交, 回退版本, 比较两个版本的差异, 都可以问 ai.
+> 要是实在不会, 就让 ai 帮忙弄, ai 都懂 Git 命令. 像提交, 回退版本, 比较两个版本的差异, 都可以问 ai.
 
 关于 Git 的使用, 可以看这个快速入门[教程](https://chriswenchen.github.io/theory-computing-physics-guide/docs/git), 最常用的就几个命令:
 ```bash
@@ -107,11 +110,11 @@ git commit -m "这里写提交说明"
 
 对于不熟悉命令行的小白, 可以安装一些集成了 Git GUI 的 IDE, 如 [VSCode](https://code.visualstudio.com/Download)来可视化与提交修改.
 ### 3. XML 转 sub
-
+如果要回退版本, 用 Git 把 `xml` 回退到指定的版本, 再用一下命令转成 `.sub`文件:
 ```bash
 git4subeditor pack "test.xml"
 ```
-如果 `test.sub` 已存在, 会先备份为:`test.sub.bak`, 然后覆盖写入新的 `test.sub`
+如果 `test.sub` 已存在, 会先备份为: `test.sub.bak`, 然后覆盖写入新的 `test.sub`
 
 ## 命令
 
