@@ -88,6 +88,9 @@ git4subeditor export "test.sub"
 默认直接输出到输入文件所在目录, 若 `xml` 已存在, 会询问是否覆盖: 输入 `y` 覆盖, 其他任意输入跳过
 
 ### 2. 用 Git 管理 XML
+> [!tip]
+> 要是实在不会, 就让 ai 帮忙弄, ai 都懂得用 Git. 像提交, 回退版本, 比较两个版本的差异, 都可以问 ai.
+
 关于 Git 的使用, 可以看这个快速入门[教程](https://chriswenchen.github.io/theory-computing-physics-guide/docs/git), 最常用的就几个命令:
 ```bash
 # 初始化版本库
@@ -102,7 +105,7 @@ git status
 git commit -m "这里写提交说明"
 ```
 
-对于不熟悉命令行的小白, 可以安装一些集成了 Git GUI 的 IDE, 如 [VSCode](https://code.visualstudio.com/Download)来可视化与提交修改; 实在不行就让 ai 来帮忙提交吧.
+对于不熟悉命令行的小白, 可以安装一些集成了 Git GUI 的 IDE, 如 [VSCode](https://code.visualstudio.com/Download)来可视化与提交修改.
 ### 3. XML 转 sub
 
 ```bash

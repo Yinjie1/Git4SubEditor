@@ -12,11 +12,13 @@ import binascii
 import gzip
 import io
 import shutil
+import sys
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 
 from git4subeditor.subfile import (
+    GZIP_MAGIC,
     SubFileError,
     decode_xml,
     decompress_sub,
@@ -238,8 +240,9 @@ def pack_sub(
     """Pack an exported XML file back into a .sub file.
 
     The relative ``preview`` attribute is resolved against the XML directory
-    and embedded as base64 in ``previewimage``. An existing target is copied
-    to ``<target>.bak`` before it is overwritten.
+    and embedded as base64 in ``previewimage``. If the linked image is missing,
+    a warning is printed and the preview is omitted. An existing target is
+    copied to ``<target>.bak`` before it is overwritten.
 
     The output is gzip-compressed with a fixed timestamp, so packing the same
     XML twice produces identical bytes.
@@ -266,6 +269,9 @@ def pack_sub(
     except OSError as exc:
         raise SubFileError(f"cannot read file {xml_path}: {exc}") from exc
 
+    if raw.startswith(GZIP_MAGIC):
+        raise SubFileError(f"{xml_path} looks like a .sub file; export it to XML first")
+
     root: ET.Element = parse_xml(decode_xml(raw))
     _require_submarine_root(root)
 
@@ -274,13 +280,21 @@ def pack_sub(
         preview_path = _resolve_preview_link(xml_path, link)
         try:
             preview = preview_path.read_bytes()
+        except FileNotFoundError:
+            print(
+                f"warning: preview image not found: {preview_path}; "
+                "preview will be left empty",
+                file=sys.stderr,
+            )
+            preview = None
         except OSError as exc:
             raise SubFileError(
                 f"cannot read preview image {preview_path}: {exc}"
             ) from exc
-        if not preview:
-            raise SubFileError(f"preview image is empty: {preview_path}")
-        embed_preview_image(root, preview)
+        if preview is not None:
+            if not preview:
+                raise SubFileError(f"preview image is empty: {preview_path}")
+            embed_preview_image(root, preview)
 
     text: str = serialize_xml(
         root,
