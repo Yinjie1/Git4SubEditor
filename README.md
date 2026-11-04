@@ -7,8 +7,8 @@
 
 ## 为什么需要 Git
 1. Git 的版本控制, 并不是每个版本都备份一个副本, 而是记录两个版本间的 diff, 这样不仅版本仓库体积非常小, 而且可以很方便地看出每次都做了哪些改动.
-    > 就像 [Git 官网](https://git-scm.com/about)里提到的: "Git 能高效地存储仓库历史. 截至 2025 年, 当前版本的 Linux 内核源代码大小为 1.7 GB. Git 仅用 5.5 GB 就存储了 Linux 项目的完整历史 (140 万次提交)."
-1. 可以上传到远程托管平台, 如 Github, Gitee 等, 这是一种更安全的"云同步", 同时也方便进行多人合作开发.
+    > 就像 Git 官网里提到的: "Git 能高效地存储仓库历史. 截至 2025 年, 当前版本的 Linux 内核源代码大小为 1.7 GB. Git 仅用 5.5 GB 就存储了 Linux 项目的完整历史 (140 万次提交)."
+2. 可以上传到远程托管平台, 如 Github, Gitee 等, 这是一种更安全的"云同步", 同时也方便进行多人合作开发.
 
 ## 为什么需要这个工具
 
@@ -30,24 +30,34 @@
    - outposttags
 
 ## 傻瓜式安装教程 (Windows)
-
-安装包管理工具 uv
+### 1. 安装 Git for Windows
+直接到 Git [官网](https://git-scm.com/install/windows)上下载
+### 2. 构建 Python 环境(可选)
+安装包管理工具 uv, 打开 CMD/PowerShell:
 ```bash
 winget install uv
-```
-检查是否安装成功
-```bash
+# 检查是否安装成功
 uv --version
 ```
-安装指定版本 python 解释器 (版本不要太低)
+uv 默认把解释器/包/工具都装在C盘, 如果想改安装目录, 可以改环境变量`UV_CACHE_DIR`, `UV_PYTHON_INSTALL_DIR`, `UV_TOOL_BIN_DIR`, `UV_TOOL_DIR`(改完后需重启终端), 运行以下命令检查是否修改成功:
 ```bash
+uv python dir
+uv cache dir
+uv tool dir
+```
+安装一个 Python 解释器:
+```bash
+# 最后一个是版本, 版本不要太低
 uv python install 3.15
 ```
-
+### 3. 安装 Git4SubEditor
 从 GitHub 安装到 uv 的独立工具环境, 不会污染 Python 全局环境:
 
 ```bash
 uv tool install "git4subeditor @ git+https://github.com/Yinjie1/Git4SubEditor.git"
+# 检查是否安装成功
+uv tool list
+git4subeditor --version
 ```
 
 ## 快速开始
