@@ -44,6 +44,20 @@ _PREVIEW_EXTENSIONS: tuple[str, ...] = (
     ".bmp",
     ".bin",
 )
+# Barotrauma stores these comma-separated attributes as unordered sets. The
+# game may write them in a different order every time a submarine is saved.
+_UNORDERED_COMMA_ATTRIBUTES: frozenset[str] = frozenset(
+    {
+        "Tags",
+        "items",
+        "excludedidentifiers",
+        "DisallowedUpgrades",
+        "DisallowAttachingOverTags",
+        "ContainableRestrictions",
+        "idcardtags",
+        "outposttags",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,7 +102,9 @@ def serialize_xml(
     """Serialize an XML tree in canonical, line-oriented form.
 
     The tree is modified in place: elements are indented with two spaces and,
-    when requested, attributes are sorted alphabetically.
+    when requested, attributes are sorted alphabetically. Comma-separated
+    game set attributes such as ``Tags`` and ``items`` are always sorted so
+    that saving the same submarine again does not produce meaningless diffs.
 
     Args:
         root: Root element to serialize.
@@ -98,6 +114,7 @@ def serialize_xml(
     Returns:
         The serialized XML text using LF line endings.
     """
+    _canonicalize_unordered_attributes(root)
     if sort_attributes:
         _sort_attributes(root)
     ET.indent(root, space=INDENT)
@@ -341,6 +358,18 @@ def _require_submarine_root(root: ET.Element) -> None:
     """Check that the root element is a Submarine element."""
     if root.tag != "Submarine":
         raise SubFileError(f"expected <Submarine> root, found <{root.tag}>")
+
+
+def _canonicalize_unordered_attributes(element: ET.Element) -> None:
+    """Sort comma-separated set attributes of an element and its descendants."""
+    for name in _UNORDERED_COMMA_ATTRIBUTES:
+        value = element.attrib.get(name)
+        if value is None or "," not in value:
+            continue
+        parts = [part.strip() for part in value.split(",")]
+        element.attrib[name] = ",".join(sorted(parts, key=str.casefold))
+    for child in element:
+        _canonicalize_unordered_attributes(child)
 
 
 def _sort_attributes(element: ET.Element) -> None:
