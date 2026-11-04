@@ -1,6 +1,6 @@
 # Git4SubEditor
 
-把 Barotrauma 的 `.sub` 潜艇文件转换为适合 Git 版本追踪的文本格式. 
+一个 CLI 工具, 把 Barotrauma 的 `.sub` 潜艇文件转换为适合 Git 版本追踪的文本格式. 
 
 > [!warning]
 > 该程序完全是 Vibe Coding 的产物, 测试时可能并未覆盖所有可能出现的异常(而且我还未对代码进行review); 如果你打算将此程序应用于你正在开发的项目, 请先进行**备份**, 以免发生不可挽回的灾难性事故
@@ -29,16 +29,25 @@
    - idcardtags
    - outposttags
 
-## 安装
+## 傻瓜式安装教程 (Windows)
 
+安装包管理工具 uv
 ```bash
-pip install -e .
+winget install uv
+```
+检查是否安装成功
+```bash
+uv --version
+```
+安装指定版本 python 解释器 (版本不要太低)
+```bash
+uv python install 3.15
 ```
 
-或者安装开发依赖：
+从 GitHub 安装到 uv 的独立工具环境, 不会污染 Python 全局环境:
 
 ```bash
-pip install -e ".[dev]"
+uv tool install "git4subeditor @ git+https://github.com/Yinjie1/Git4SubEditor.git"
 ```
 
 ## 快速开始
@@ -47,7 +56,7 @@ pip install -e ".[dev]"
 # 1. 在 .sub 旁边导出同名 XML 和预览图
 git4subeditor export "Git test.sub"
 
-# 得到：
+# 得到:
 # Git test.xml
 # Git test.png
 
@@ -56,13 +65,13 @@ git4subeditor export "Git test.sub"
 # 3. 修改 XML 后重新打包
 git4subeditor pack "Git test.xml"
 
-# 如果 Git test.sub 已存在, 会先备份为：
+# 如果 Git test.sub 已存在, 会先备份为:
 # Git test.sub.bak
 # 然后写入新的 Git test.sub
 ```
 
 `export` 默认直接输出到输入文件所在目录. `pack` 默认输出到 XML 同目录下的同名
-`.sub`；如果目标已存在, 会自动备份后覆盖, 不需要额外加 `--force`. 
+`.sub`; 如果目标已存在, 会自动备份后覆盖, 不需要额外加 `--force`.
 
 ## 命令
 
@@ -86,7 +95,7 @@ git4subeditor export *.sub -o exported
 把导出的 XML 重新打包为 `.sub`. 
 
 - 优先读取根节点 `preview` 属性指向的相对路径. 
-- 如果没有 `preview` 属性, 会尝试同目录下的 `<name>.<ext>`、旧的
+- 如果没有 `preview` 属性, 会尝试同目录下的 `<name>.<ext>`, 旧的
   `<name>.preview.<ext>` 或 `preview.<ext>`. 
 - 如果目标 `.sub` 已存在, 先复制为 `<目标>.bak`, 再写入新文件. 
 - 使用固定时间戳的 gzip, 相同输入会得到相同字节. 
@@ -98,7 +107,7 @@ git4subeditor pack "Git test.xml" -o "Git test.sub"
 
 | 参数 | 说明 |
 | --- | --- |
-| `-o, --output` | 输出 `.sub` 文件, 或一个已存在的目录；默认与 XML 同目录 |
+| `-o, --output` | 输出 `.sub` 文件, 或一个已存在的目录; 默认与 XML 同目录 |
 | `--sort-attributes` | 打包前按字母顺序排列 XML 属性 |
 
 ### unpack
@@ -146,16 +155,16 @@ pack_sub(result.xml_path)
 
 ## 注意事项
 
-- `checkval` 是游戏保存时写入的随机整数, 用于多人战役校验潜艇文件；本工具不会
+- `checkval` 是游戏保存时写入的随机整数, 用于多人战役校验潜艇文件; 本工具不会
   修改它, 因此每次在游戏中保存后, 根节点仍会出现一行 `checkval` 变化. 
-- 游戏内部把 `Tags`、`requireditem` 的 `items` 等属性保存为无序集合, 重新保存时
+- 游戏内部把 `Tags`, `requireditem` 的 `items` 等属性保存为无序集合, 重新保存时
   可能整体换序. `export` 和 `pack` 会自动按字母排序这些集合值, 避免无意义的
   全文件 diff. 首次使用新版本重新导出时, 可能产生一次集合排序 diff. 
 - XML 属性顺序默认保持游戏原样. 如果希望跨游戏版本获得更稳定的 diff, 可以使用
-  `--sort-attributes`；首次启用会产生一次属性顺序 diff. 
+  `--sort-attributes`; 首次启用会产生一次属性顺序 diff.
 - `preview` 是相对 XML 所在目录的路径. 移动或重命名 XML 时, 请一起移动或重命名
   预览图, 并同步修改 `preview` 属性. 
-- 如果没有 `preview` 属性, `pack` 会按扩展名优先级查找同名图片（PNG 优先）. 
+- 如果没有 `preview` 属性, `pack` 会按扩展名优先级查找同名图片 (PNG 优先).
   不要在同一目录保留多个同名不同扩展名的候选图片. 
 - 重新打包后建议进入游戏编辑器打开一次, 确认潜艇可以正常加载. 
 
