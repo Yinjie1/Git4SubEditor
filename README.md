@@ -40,7 +40,7 @@
 ### 1. 安装 Git for Windows
 直接到 Git [官网](https://git-scm.com/install/windows)上下载
 ### 2. 安装 Python 环境(可选)
-安装包管理工具 uv, 打开 CMD/PowerShell:
+安装包管理工具 [uv](https://docs.astral.sh/uv/), 打开 CMD/PowerShell:
 ```bash
 winget install uv
 # 检查是否安装成功
@@ -73,10 +73,11 @@ git4subeditor --version
 
 ## 快速开始
 ### 1. 初始化工作目录
-你的潜艇Mod目录(在`LocalMods`中)就是项目工作目录. 首先在目录中新建一个`.gitignore`文件(不要留后缀), 里面填让 Git 忽略的文件, 建议在里面添加这些内容:
+你的潜艇Mod目录就是项目工作目录, 位于`Barotrauma\LocalMods\`中, 也可以在游戏内的模组选择界面, 点击你的潜艇Mod右侧的"笔"图标快速打开.  
+首先在目录中新建一个`.gitignore`文件(不要留后缀), 里面填让 Git 忽略的文件, 建议在里面添加这些内容:
 ```
 # 忽略潜艇二进制文件, 否则版本库会变得很大
-*.sub
+*.sub 
 *.bak
 # 一般没必要追踪图片, 也可能导致版本库变得很大
 *.png
@@ -108,9 +109,9 @@ git status
 git commit -m "这里写提交说明"
 ```
 
-对于不熟悉命令行的小白, 可以安装一些集成了 Git GUI 的 IDE, 如 [VSCode](https://code.visualstudio.com/Download)来可视化与提交修改.
+对于不熟悉命令行的小白, 可以安装一些集成了 Git GUI 的 IDE, 如 [VSCode](https://code.visualstudio.com/Download), 来可视化差异与提交修改.
 ### 3. XML 转 sub
-如果要回退版本, 用 Git 把 `xml` 回退到指定的版本, 再用一下命令转成 `.sub`文件:
+如果要回退版本, 用 Git 把 `xml` 回退到指定的版本, 再用以下命令转成 `.sub`文件:
 ```bash
 git4subeditor pack "test.xml"
 ```
