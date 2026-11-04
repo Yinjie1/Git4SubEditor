@@ -3,7 +3,7 @@
 一个 CLI 工具, 把 Barotrauma 的 `.sub` 潜艇文件转换为适合 Git 版本追踪的文本格式. 
 
 > [!warning]
-> 该程序是 Vibe Coding 的产物, 测试时可能并未覆盖所有可能出现的异常; 如果你打算将此程序应用于你正在开发的项目, 请先进行**备份**, 以免发生不可挽回的灾难性事故
+> 该程序是 Vibe Coding 的产物, 我正在对代码进行 review 和测试, 但测试可能并未覆盖所有可能出现的异常; 如果你打算将此程序应用于你正在开发的项目, 请先进行**备份**, 以免发生不可挽回的灾难性事故
 
 ## 为什么需要 Git
 1. Git 的版本控制, 并不是每个版本都备份一个副本, 而是记录两个版本间的 diff, 这样不仅版本仓库体积非常小, 而且可以很方便地看出每次都做了哪些改动.
@@ -30,9 +30,12 @@
    - outposttags
 
 ## 傻瓜式安装教程 (Windows)
+> [!tip]
+> 要是实在不会, 就把该文档发给 ai, 让 ai 帮你装.
+
 ### 1. 安装 Git for Windows
 直接到 Git [官网](https://git-scm.com/install/windows)上下载
-### 2. 构建 Python 环境(可选)
+### 2. 安装 Python 环境(可选)
 安装包管理工具 uv, 打开 CMD/PowerShell:
 ```bash
 winget install uv
@@ -101,18 +104,15 @@ git4subeditor export *.sub -o exported
 | 参数 | 说明 |
 | --- | --- |
 | `-o, --output-dir` | 输出目录, 默认与输入文件同目录 |
-| `--sort-attributes` | 按字母顺序排列 XML 属性, 跨游戏版本更稳定 |
+| `--sort-attributes` | 按字母顺序排列 XML 属性(属性内部按字母顺序排列) |
 | `-f, --force` | 跳过覆盖询问, 直接覆盖已存在的 XML 或预览图 |
 
 ### pack
 
 把导出的 XML 重新打包为 `.sub`. 
 
-- 优先读取根节点 `preview` 属性指向的相对路径. 
-- 如果没有 `preview` 属性, 会尝试同目录下的 `<name>.<ext>`, 旧的
-  `<name>.preview.<ext>` 或 `preview.<ext>`. 
+- 读取根节点 `preview` 属性指向的相对路径. 
 - 如果目标 `.sub` 已存在, 先复制为 `<目标>.bak`, 再写入新文件. 
-- 使用固定时间戳的 gzip, 相同输入会得到相同字节. 
 
 ```bash
 git4subeditor pack "test.xml"
@@ -142,8 +142,8 @@ git4subeditor unpack "test.sub" --stdout
 | `--no-validate` | 跳过 XML 合法性检查 |
 | `-f, --force` | 覆盖已存在的输出文件 |
 
-为了兼容旧用法, `git4subeditor "test.sub"` 仍然等价于
-`git4subeditor unpack "test.sub"`. 
+必须显式指定子命令, 例如 `git4subeditor unpack "test.sub"`. 直接传入文件名会
+报参数错误. 
 
 ## Python API
 

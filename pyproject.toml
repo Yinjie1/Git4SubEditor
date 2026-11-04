@@ -17,7 +17,6 @@ classifiers = [
 
 [project.scripts]
 git4subeditor = "git4subeditor.cli:main"
-sub-unpack = "git4subeditor.cli:main"
 
 [project.optional-dependencies]
 dev = [

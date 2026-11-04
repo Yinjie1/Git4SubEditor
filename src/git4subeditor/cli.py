@@ -8,8 +8,6 @@ from git4subeditor import __version__
 from git4subeditor.gitformat import export_sub, pack_sub
 from git4subeditor.subfile import SubFileError, unpack_sub
 
-_COMMANDS: tuple[str, ...] = ("unpack", "export", "pack")
-
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the command-line argument parser."""
@@ -138,12 +136,7 @@ def main(argv: list[str] | None = None) -> int:
     Returns:
         Process exit code: 0 on success, 1 if any input failed, 2 on bad usage.
     """
-    raw_args: list[str] = list(sys.argv[1:] if argv is None else argv)
-    if raw_args and not raw_args[0].startswith("-") and raw_args[0] not in _COMMANDS:
-        # Keep the original `git4subeditor file.sub` form working.
-        raw_args.insert(0, "unpack")
-
-    args = build_parser().parse_args(raw_args)
+    args = build_parser().parse_args(argv)
 
     if args.command == "unpack" and args.stdout and len(args.inputs) > 1:
         print("error: --stdout accepts only one input file", file=sys.stderr)

@@ -25,7 +25,6 @@ from git4subeditor.subfile import (
 
 PREVIEW_ATTRIBUTE: str = "previewimage"
 PREVIEW_LINK_ATTRIBUTE: str = "preview"
-LEGACY_PREVIEW_SUFFIX: str = ".preview"
 INDENT: str = "  "
 
 _IMAGE_SIGNATURES: tuple[tuple[bytes, str], ...] = (
@@ -34,15 +33,6 @@ _IMAGE_SIGNATURES: tuple[tuple[bytes, str], ...] = (
     (b"GIF87a", ".gif"),
     (b"GIF89a", ".gif"),
     (b"BM", ".bmp"),
-)
-_PREVIEW_EXTENSIONS: tuple[str, ...] = (
-    ".png",
-    ".jpg",
-    ".jpeg",
-    ".gif",
-    ".webp",
-    ".bmp",
-    ".bin",
 )
 # Barotrauma stores these comma-separated attributes as unordered sets. The
 # game may write them in a different order every time a submarine is saved.
@@ -171,43 +161,6 @@ def embed_preview_image(root: ET.Element, image: bytes) -> None:
     root.set(PREVIEW_ATTRIBUTE, base64.b64encode(image).decode("ascii"))
 
 
-def find_preview_image(xml_path: Path) -> Path | None:
-    """Find the preview image that belongs to an exported XML file.
-
-    The preferred name is ``<stem>.<ext>``, matching the XML file name. The
-    legacy names ``<stem>.preview.<ext>`` and ``preview.<ext>`` are accepted as
-    fallbacks for bundles created by older versions.
-
-    Args:
-        xml_path: Path to the exported XML file.
-
-    Returns:
-        The preview image path, or None when no matching file exists.
-
-    Raises:
-        SubFileError: If the directory cannot be listed.
-    """
-    try:
-        entries = sorted(xml_path.parent.iterdir())
-    except OSError as exc:
-        raise SubFileError(f"cannot list {xml_path.parent}: {exc}") from exc
-
-    stem = xml_path.stem.lower()
-    prefixes = (stem, f"{stem}{LEGACY_PREVIEW_SUFFIX}", "preview")
-    for prefix in prefixes:
-        matches = [
-            path
-            for path in entries
-            if path.is_file()
-            and path.suffix.lower() in _PREVIEW_EXTENSIONS
-            and path.name.lower() == f"{prefix}{path.suffix.lower()}"
-        ]
-        if matches:
-            matches.sort(key=_preview_sort_key)
-            return matches[0]
-    return None
-
-
 def export_sub(
     src: Path,
     out_dir: Path | None = None,
@@ -285,8 +238,7 @@ def pack_sub(
     """Pack an exported XML file back into a .sub file.
 
     The relative ``preview`` attribute is resolved against the XML directory
-    and embedded as base64 in ``previewimage``. When the XML has no link, a
-    sibling preview image is used as a fallback. An existing target is copied
+    and embedded as base64 in ``previewimage``. An existing target is copied
     to ``<target>.bak`` before it is overwritten.
 
     The output is gzip-compressed with a fixed timestamp, so packing the same
@@ -318,22 +270,17 @@ def pack_sub(
     _require_submarine_root(root)
 
     link = root.attrib.pop(PREVIEW_LINK_ATTRIBUTE, None)
-    if PREVIEW_ATTRIBUTE not in root.attrib:
-        preview_path = (
-            _resolve_preview_link(xml_path, link)
-            if link is not None
-            else find_preview_image(xml_path)
-        )
-        if preview_path is not None:
-            try:
-                preview = preview_path.read_bytes()
-            except OSError as exc:
-                raise SubFileError(
-                    f"cannot read preview image {preview_path}: {exc}"
-                ) from exc
-            if not preview:
-                raise SubFileError(f"preview image is empty: {preview_path}")
-            embed_preview_image(root, preview)
+    if PREVIEW_ATTRIBUTE not in root.attrib and link is not None:
+        preview_path = _resolve_preview_link(xml_path, link)
+        try:
+            preview = preview_path.read_bytes()
+        except OSError as exc:
+            raise SubFileError(
+                f"cannot read preview image {preview_path}: {exc}"
+            ) from exc
+        if not preview:
+            raise SubFileError(f"preview image is empty: {preview_path}")
+        embed_preview_image(root, preview)
 
     text: str = serialize_xml(
         root,
@@ -387,16 +334,6 @@ def _guess_image_suffix(image: bytes) -> str:
     if image[:4] == b"RIFF" and image[8:12] == b"WEBP":
         return ".webp"
     return ".bin"
-
-
-def _preview_sort_key(path: Path) -> tuple[int, str]:
-    """Sort preview candidates by preferred image extension."""
-    suffix = path.suffix.lower()
-    try:
-        priority = _PREVIEW_EXTENSIONS.index(suffix)
-    except ValueError:
-        priority = len(_PREVIEW_EXTENSIONS)
-    return priority, path.name.lower()
 
 
 def _resolve_pack_output(xml_path: Path, out: Path | None) -> Path:
