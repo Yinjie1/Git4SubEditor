@@ -1,15 +1,17 @@
 """Convert .sub files to and from a Git-friendly XML bundle.
 
 The bundle contains a canonical, line-oriented XML file and, when present, the
-submarine preview image extracted from the ``previewimage`` attribute. Packing
+submarine preview image extracted from the ``previewimage`` attribute. The XML
+references the image through a relative ``preview`` attribute. Packing
 re-embeds the preview image and writes a deterministic gzip-compressed .sub
-file.
+file, backing up an existing target first.
 """
 
 import base64
 import binascii
 import gzip
 import io
+import shutil
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,7 +24,8 @@ from git4subeditor.subfile import (
 )
 
 PREVIEW_ATTRIBUTE: str = "previewimage"
-PREVIEW_SUFFIX: str = ".preview"
+PREVIEW_LINK_ATTRIBUTE: str = "preview"
+LEGACY_PREVIEW_SUFFIX: str = ".preview"
 INDENT: str = "  "
 
 _IMAGE_SIGNATURES: tuple[tuple[bytes, str], ...] = (
@@ -154,8 +157,9 @@ def embed_preview_image(root: ET.Element, image: bytes) -> None:
 def find_preview_image(xml_path: Path) -> Path | None:
     """Find the preview image that belongs to an exported XML file.
 
-    The preferred name is ``<stem>.preview.<ext>``. A sibling ``preview.<ext>``
-    is also accepted for per-submarine directories.
+    The preferred name is ``<stem>.<ext>``, matching the XML file name. The
+    legacy names ``<stem>.preview.<ext>`` and ``preview.<ext>`` are accepted as
+    fallbacks for bundles created by older versions.
 
     Args:
         xml_path: Path to the exported XML file.
@@ -172,7 +176,8 @@ def find_preview_image(xml_path: Path) -> Path | None:
         raise SubFileError(f"cannot list {xml_path.parent}: {exc}") from exc
 
     stem = xml_path.stem.lower()
-    for prefix in (f"{stem}{PREVIEW_SUFFIX}", "preview"):
+    prefixes = (stem, f"{stem}{LEGACY_PREVIEW_SUFFIX}", "preview")
+    for prefix in prefixes:
         matches = [
             path
             for path in entries
@@ -195,6 +200,10 @@ def export_sub(
 ) -> ExportResult:
     """Export a .sub file into a Git-friendly XML bundle.
 
+    The XML is written as ``<stem>.xml`` in the output directory. When the
+    source has a preview image, it is written as ``<stem>.<ext>`` and the root
+    element receives a relative ``preview`` attribute pointing to it.
+
     Args:
         src: Path to the input .sub file.
         out_dir: Output directory. Defaults to the input file's directory.
@@ -214,11 +223,6 @@ def export_sub(
     _require_submarine_root(root)
 
     preview: tuple[bytes, str] | None = extract_preview_image(root)
-    canonical: str = serialize_xml(
-        root,
-        sort_attributes=sort_attributes,
-        trailing_newline=True,
-    )
 
     target_dir: Path = out_dir if out_dir is not None else src.parent
     try:
@@ -230,9 +234,17 @@ def export_sub(
 
     xml_path = target_dir / f"{src.stem}.xml"
     preview_path = (
-        target_dir / f"{src.stem}{PREVIEW_SUFFIX}{preview[1]}"
-        if preview is not None
-        else None
+        target_dir / f"{src.stem}{preview[1]}" if preview is not None else None
+    )
+
+    root.attrib.pop(PREVIEW_LINK_ATTRIBUTE, None)
+    if preview_path is not None:
+        root.set(PREVIEW_LINK_ATTRIBUTE, preview_path.name)
+
+    canonical: str = serialize_xml(
+        root,
+        sort_attributes=sort_attributes,
+        trailing_newline=True,
     )
 
     _ensure_writable(xml_path, force)
@@ -250,20 +262,22 @@ def pack_sub(
     xml_path: Path,
     out: Path | None = None,
     *,
-    force: bool = False,
     sort_attributes: bool = False,
     compresslevel: int = 9,
 ) -> Path:
     """Pack an exported XML file back into a .sub file.
 
-    If the root has no ``previewimage`` attribute, a sibling preview image is
-    embedded when one is found. The output is gzip-compressed with a fixed
-    timestamp, so packing the same XML twice produces identical bytes.
+    The relative ``preview`` attribute is resolved against the XML directory
+    and embedded as base64 in ``previewimage``. When the XML has no link, a
+    sibling preview image is used as a fallback. An existing target is copied
+    to ``<target>.bak`` before it is overwritten.
+
+    The output is gzip-compressed with a fixed timestamp, so packing the same
+    XML twice produces identical bytes.
 
     Args:
         xml_path: Path to the exported XML file.
         out: Output .sub path. Defaults to the XML file with a ``.sub`` suffix.
-        force: Whether to overwrite an existing output file.
         sort_attributes: Whether to sort XML attributes before packing.
         compresslevel: gzip compression level from 0 to 9.
 
@@ -271,8 +285,8 @@ def pack_sub(
         The path of the written .sub file.
 
     Raises:
-        SubFileError: If reading, parsing, or writing fails, or if the output
-            file already exists and force is False.
+        SubFileError: If reading, parsing, resolving the preview link, backing
+            up the target, or writing fails.
         ValueError: If compresslevel is outside the range 0 to 9.
     """
     if not 0 <= compresslevel <= 9:
@@ -286,8 +300,13 @@ def pack_sub(
     root: ET.Element = parse_xml(decode_xml(raw))
     _require_submarine_root(root)
 
+    link = root.attrib.pop(PREVIEW_LINK_ATTRIBUTE, None)
     if PREVIEW_ATTRIBUTE not in root.attrib:
-        preview_path = find_preview_image(xml_path)
+        preview_path = (
+            _resolve_preview_link(xml_path, link)
+            if link is not None
+            else find_preview_image(xml_path)
+        )
         if preview_path is not None:
             try:
                 preview = preview_path.read_bytes()
@@ -313,7 +332,7 @@ def pack_sub(
         raise SubFileError(
             f"cannot create output directory {dst.parent}: {exc}"
         ) from exc
-    _ensure_writable(dst, force)
+    _backup_existing(dst)
     _write_bytes(dst, compressed)
     return dst
 
@@ -358,6 +377,29 @@ def _resolve_pack_output(xml_path: Path, out: Path | None) -> Path:
     if out.is_dir():
         return out / f"{xml_path.stem}.sub"
     return out
+
+
+def _resolve_preview_link(xml_path: Path, link: str) -> Path:
+    """Resolve a relative preview link against the XML file's directory."""
+    if not link.strip():
+        raise SubFileError("preview link is empty")
+    path = Path(link)
+    return path if path.is_absolute() else xml_path.parent / path
+
+
+def _backup_existing(path: Path) -> Path | None:
+    """Copy an existing target to ``<name>.bak`` before overwriting it."""
+    if not path.exists():
+        return None
+    if not path.is_file():
+        raise SubFileError(f"output path is not a regular file: {path}")
+
+    backup = path.with_name(f"{path.name}.bak")
+    try:
+        shutil.copy2(path, backup)
+    except OSError as exc:
+        raise SubFileError(f"cannot back up {path} to {backup}: {exc}") from exc
+    return backup
 
 
 def _ensure_writable(path: Path, force: bool) -> None:

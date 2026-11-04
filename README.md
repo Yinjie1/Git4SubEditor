@@ -11,13 +11,20 @@ Git 只能看到二进制文件发生了变化，无法审查具体改动。
 `previewimage` 属性里，往往会让第一行长达几十万字符。只要改动附近的内容，就会
 产生巨大的单行 diff。
 
-本工具把 `.sub` 转成一个小型文本包：
+本工具把 `.sub` 转成同一目录下的一对文件：
 
 - `<name>.xml`：规范化后的 XML，两个空格缩进、LF 换行、每行一个元素
-- `<name>.preview.*`：从 `previewimage` 拆出的预览图，通常是 `.png`
+- `<name>.<ext>`：从 `previewimage` 拆出的预览图，通常是 `<name>.png`
 
-`pack` 可以把文本包重新打包成游戏可读取的 `.sub`。未修改的 XML 经过
-`export -> pack` 后，解压得到的 XML 与原文件一致（仅换行统一为 LF）。
+XML 根节点不再保存 Base64，而是通过相对链接引用预览图：
+
+```xml
+<Submarine name="Git test" preview="Git test.png" ...>
+```
+
+`pack` 会把预览图重新写回 `previewimage` 属性，并在覆盖已有 `.sub` 前自动备份为
+`<name>.sub.bak`。未修改的 XML 经过 `export -> pack` 后，解压得到的 XML 与原文件
+一致（仅换行统一为 LF）。
 
 ## 安装
 
@@ -34,30 +41,34 @@ pip install -e ".[dev]"
 ## 快速开始
 
 ```bash
-# 1. 导出为 Git 友好格式
-git4subeditor export "Git test.sub" -o exported
+# 1. 在 .sub 旁边导出同名 XML 和预览图
+git4subeditor export "Git test.sub"
 
 # 得到：
-# exported/Git test.xml
-# exported/Git test.preview.png
+# Git test.xml
+# Git test.png
 
-# 2. 用 Git 管理导出的 XML 和预览图
+# 2. 用 Git 管理 XML 和预览图
 
 # 3. 修改 XML 后重新打包
-git4subeditor pack "exported/Git test.xml" -o rebuilt.sub
+git4subeditor pack "Git test.xml"
+
+# 如果 Git test.sub 已存在，会先备份为：
+# Git test.sub.bak
+# 然后写入新的 Git test.sub
 ```
 
-`pack` 默认输出到 XML 同目录下的同名 `.sub`。如果目标文件已存在（例如直接覆盖
-原始 `.sub`），需要加 `-f/--force`。
+`export` 默认直接输出到输入文件所在目录。`pack` 默认输出到 XML 同目录下的同名
+`.sub`；如果目标已存在，会自动备份后覆盖，不需要额外加 `--force`。
 
 ## 命令
 
 ### export
 
-把 `.sub` 导出为 XML 加预览图。
+把 `.sub` 导出为同名 XML 和预览图。
 
 ```bash
-git4subeditor export "Git test.sub" -o exported
+git4subeditor export "Git test.sub"
 git4subeditor export *.sub -o exported
 ```
 
@@ -65,23 +76,27 @@ git4subeditor export *.sub -o exported
 | --- | --- |
 | `-o, --output-dir` | 输出目录，默认与输入文件同目录 |
 | `--sort-attributes` | 按字母顺序排列 XML 属性，跨游戏版本更稳定 |
-| `-f, --force` | 覆盖已存在的输出文件 |
+| `-f, --force` | 覆盖已存在的 XML 或预览图 |
 
 ### pack
 
-把导出的 XML 重新打包为 `.sub`。如果 XML 根节点没有 `previewimage`，会自动读取
-同目录下的 `<name>.preview.*` 或 `preview.*` 图片并写回。
+把导出的 XML 重新打包为 `.sub`。
+
+- 优先读取根节点 `preview` 属性指向的相对路径。
+- 如果没有 `preview` 属性，会尝试同目录下的 `<name>.<ext>`、旧的
+  `<name>.preview.<ext>` 或 `preview.<ext>`。
+- 如果目标 `.sub` 已存在，先复制为 `<目标>.bak`，再写入新文件。
+- 使用固定时间戳的 gzip，相同输入会得到相同字节。
 
 ```bash
-git4subeditor pack "exported/Git test.xml"
-git4subeditor pack "exported/Git test.xml" -o "Git test.sub"
+git4subeditor pack "Git test.xml"
+git4subeditor pack "Git test.xml" -o "Git test.sub"
 ```
 
 | 参数 | 说明 |
 | --- | --- |
 | `-o, --output` | 输出 `.sub` 文件，或一个已存在的目录；默认与 XML 同目录 |
 | `--sort-attributes` | 打包前按字母顺序排列 XML 属性 |
-| `-f, --force` | 覆盖已存在的输出文件 |
 
 ### unpack
 
@@ -111,17 +126,17 @@ from pathlib import Path
 
 from git4subeditor import export_sub, pack_sub
 
-result = export_sub(Path("Git test.sub"), Path("exported"))
+result = export_sub(Path("Git test.sub"))
 print(result.xml_path)
 print(result.preview_path)
 
-pack_sub(result.xml_path, Path("rebuilt.sub"), force=True)
+pack_sub(result.xml_path)
 ```
 
 ## Git 建议
 
-- 只提交 `<name>.xml` 和 `<name>.preview.png`，不要提交 `.sub`。
-- 本仓库的 `.gitignore` 默认忽略 `*.sub` 和 `*.png`，但已放行 `*.preview.png`。
+- 只提交 `<name>.xml` 和 `<name>.png`，不要提交 `.sub`。
+- 本仓库的 `.gitignore` 默认忽略 `*.sub` 和 `*.bak`，但会正常跟踪 XML 和预览图。
 - 本仓库的 `.gitattributes` 把导出的 `*.xml` 固定为 LF 换行，并把 `.sub` 和图片
   标记为二进制。
 - 预览图是二进制文件。如果体积较大，可以考虑 Git LFS。
@@ -132,8 +147,10 @@ pack_sub(result.xml_path, Path("rebuilt.sub"), force=True)
   修改它。
 - 属性顺序默认保持游戏原样。如果希望跨游戏版本获得更稳定的 diff，可以使用
   `--sort-attributes`；首次启用会产生一次全量 diff。
-- 同一个 XML 旁边不要保留多个 `<name>.preview.*` 文件；`pack` 会按扩展名优先级
-  选择（PNG 优先）。如果 XML 根节点已经有 `previewimage`，旁边的图片会被忽略。
+- `preview` 是相对 XML 所在目录的路径。移动或重命名 XML 时，请一起移动或重命名
+  预览图，并同步修改 `preview` 属性。
+- 如果没有 `preview` 属性，`pack` 会按扩展名优先级查找同名图片（PNG 优先）。
+  不要在同一目录保留多个同名不同扩展名的候选图片。
 - 重新打包后建议进入游戏编辑器打开一次，确认潜艇可以正常加载。
 
 ## 开发

@@ -98,7 +98,6 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="sort XML attributes alphabetically before packing",
     )
-    _add_force(pack)
 
     return parser
 
@@ -182,7 +181,6 @@ def main(argv: list[str] | None = None) -> int:
                 dst = pack_sub(
                     src,
                     args.output,
-                    force=args.force,
                     sort_attributes=args.sort_attributes,
                 )
                 print(f"{src.name} -> {dst}")

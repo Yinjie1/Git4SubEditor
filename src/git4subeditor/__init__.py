@@ -2,6 +2,7 @@
 
 from git4subeditor.gitformat import (
     PREVIEW_ATTRIBUTE,
+    PREVIEW_LINK_ATTRIBUTE,
     ExportResult,
     embed_preview_image,
     export_sub,
@@ -22,6 +23,7 @@ from git4subeditor.subfile import (
 
 __all__ = [
     "PREVIEW_ATTRIBUTE",
+    "PREVIEW_LINK_ATTRIBUTE",
     "ExportResult",
     "SubFileError",
     "decode_xml",
