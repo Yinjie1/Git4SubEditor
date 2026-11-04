@@ -116,8 +116,17 @@ def _add_force(parser: argparse.ArgumentParser) -> None:
         "-f",
         "--force",
         action="store_true",
-        help="overwrite existing output files",
+        help="overwrite existing output files without prompting",
     )
+
+
+def _confirm_overwrite(path: Path) -> bool:
+    """Ask whether an existing export target may be overwritten."""
+    try:
+        answer = input(f"{path} already exists. Overwrite? [y/N] ")
+    except EOFError:
+        return False
+    return answer.strip().casefold() == "y"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -165,10 +174,20 @@ def main(argv: list[str] | None = None) -> int:
                     validate=not args.no_validate,
                 )
             elif args.command == "export":
+                force: bool = args.force
+                target_dir: Path = (
+                    args.output_dir if args.output_dir is not None else src.parent
+                )
+                xml_path: Path = target_dir / f"{src.stem}.xml"
+                if not force and xml_path.exists():
+                    if not _confirm_overwrite(xml_path):
+                        print(f"skipped: {xml_path}")
+                        continue
+                    force = True
                 result = export_sub(
                     src,
                     args.output_dir,
-                    force=args.force,
+                    force=force,
                     sort_attributes=args.sort_attributes,
                 )
                 preview = (

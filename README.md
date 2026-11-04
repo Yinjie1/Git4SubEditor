@@ -3,7 +3,7 @@
 一个 CLI 工具, 把 Barotrauma 的 `.sub` 潜艇文件转换为适合 Git 版本追踪的文本格式. 
 
 > [!warning]
-> 该程序完全是 Vibe Coding 的产物, 测试时可能并未覆盖所有可能出现的异常(而且我还未对代码进行review); 如果你打算将此程序应用于你正在开发的项目, 请先进行**备份**, 以免发生不可挽回的灾难性事故
+> 该程序是 Vibe Coding 的产物, 测试时可能并未覆盖所有可能出现的异常; 如果你打算将此程序应用于你正在开发的项目, 请先进行**备份**, 以免发生不可挽回的灾难性事故
 
 ## 为什么需要 Git
 1. Git 的版本控制, 并不是每个版本都备份一个副本, 而是记录两个版本间的 diff, 这样不仅版本仓库体积非常小, 而且可以很方便地看出每次都做了哪些改动.
@@ -64,24 +64,25 @@ git4subeditor --version
 
 ```bash
 # 1. 在 .sub 旁边导出同名 XML 和预览图
-git4subeditor export "Git test.sub"
+# 若 XML 已存在, 会询问是否覆盖: 输入 y 覆盖, 其他任意输入跳过
+git4subeditor export "test.sub"
 
 # 得到:
-# Git test.xml
-# Git test.png
+# test.xml
+# test.png
 
 # 2. 用 Git 管理 XML 和预览图
 
 # 3. 修改 XML 后重新打包
-git4subeditor pack "Git test.xml"
+git4subeditor pack "test.xml"
 
-# 如果 Git test.sub 已存在, 会先备份为:
-# Git test.sub.bak
-# 然后写入新的 Git test.sub
+# 如果 test.sub 已存在, 会先备份为:
+# test.sub.bak
+# 然后写入新的 test.sub
 ```
 
 `export` 默认直接输出到输入文件所在目录. `pack` 默认输出到 XML 同目录下的同名
-`.sub`; 如果目标已存在, 会自动备份后覆盖, 不需要额外加 `--force`.
+`.sub`; 如果目标已存在, 会自动备份后覆盖.
 
 ## 命令
 
@@ -90,15 +91,18 @@ git4subeditor pack "Git test.xml"
 把 `.sub` 导出为同名 XML 和预览图. 
 
 ```bash
-git4subeditor export "Git test.sub"
+git4subeditor export "test.sub"
 git4subeditor export *.sub -o exported
 ```
+
+如果同名 XML 已存在, 默认会询问是否覆盖. 输入 `y` 表示覆盖, 输入其他任意内容
+表示跳过当前文件. 使用 `--force` 时不询问, 直接覆盖.
 
 | 参数 | 说明 |
 | --- | --- |
 | `-o, --output-dir` | 输出目录, 默认与输入文件同目录 |
 | `--sort-attributes` | 按字母顺序排列 XML 属性, 跨游戏版本更稳定 |
-| `-f, --force` | 覆盖已存在的 XML 或预览图 |
+| `-f, --force` | 跳过覆盖询问, 直接覆盖已存在的 XML 或预览图 |
 
 ### pack
 
@@ -111,8 +115,8 @@ git4subeditor export *.sub -o exported
 - 使用固定时间戳的 gzip, 相同输入会得到相同字节. 
 
 ```bash
-git4subeditor pack "Git test.xml"
-git4subeditor pack "Git test.xml" -o "Git test.sub"
+git4subeditor pack "test.xml"
+git4subeditor pack "test.xml" -o "test.sub"
 ```
 
 | 参数 | 说明 |
@@ -125,9 +129,9 @@ git4subeditor pack "Git test.xml" -o "Git test.sub"
 提取原始 XML, 不做规范化, 也不拆预览图. 适合调试或查看原始内容. 
 
 ```bash
-git4subeditor unpack "Git test.sub"
-git4subeditor unpack "Git test.sub" -o extracted --force
-git4subeditor unpack "Git test.sub" --stdout
+git4subeditor unpack "test.sub"
+git4subeditor unpack "test.sub" -o extracted --force
+git4subeditor unpack "test.sub" --stdout
 ```
 
 | 参数 | 说明 |
@@ -138,8 +142,8 @@ git4subeditor unpack "Git test.sub" --stdout
 | `--no-validate` | 跳过 XML 合法性检查 |
 | `-f, --force` | 覆盖已存在的输出文件 |
 
-为了兼容旧用法, `git4subeditor "Git test.sub"` 仍然等价于
-`git4subeditor unpack "Git test.sub"`. 
+为了兼容旧用法, `git4subeditor "test.sub"` 仍然等价于
+`git4subeditor unpack "test.sub"`. 
 
 ## Python API
 
@@ -148,7 +152,7 @@ from pathlib import Path
 
 from git4subeditor import export_sub, pack_sub
 
-result = export_sub(Path("Git test.sub"))
+result = export_sub(Path("test.sub"))
 print(result.xml_path)
 print(result.preview_path)
 
