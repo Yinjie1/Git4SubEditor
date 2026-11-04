@@ -26,10 +26,9 @@
 - Each public API docstring should include:
   - brief summary
   - Args
-  - Returns
+  - Returns (if a func doesn't returns `None`)
   - Raises (if applicable)
   - Examples (when helpful)
-- If a function returns `None`, do not add a `Returns` section.
 - For extremely simple functions, a single-line summary docstring is enough;
   do not expand it into structured sections.
 - Class docstrings should include key Attributes.

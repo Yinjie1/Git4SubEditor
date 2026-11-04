@@ -41,6 +41,7 @@ htmlcov/
 .nox/
 .hypothesis/
 test
+tests
 
 # ===== 类型检查 / Lint 缓存 =====
 .mypy_cache/
