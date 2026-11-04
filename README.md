@@ -1,6 +1,7 @@
 # Git4SubEditor
+> Git for Submarine Editor
 
-一个 CLI 工具, 把 Barotrauma 的 `.sub` 潜艇文件转换为适合 Git 版本追踪的文本格式. 
+一个 CLI 工具, 把 Barotrauma 的 `.sub` 潜艇文件转换为适合 Git 版本追踪的文本格式, 也支持将其转回 `.sub` 文件.
 
 > [!warning]
 > 该程序是 Vibe Coding 的产物, 我正在对代码进行 review 和测试, 但测试可能并未覆盖所有可能出现的异常; 如果你打算将此程序应用于你正在开发的项目, 请先进行**备份**, 以免发生不可挽回的灾难性事故
@@ -29,9 +30,9 @@
    - idcardtags
    - outposttags
 
-## 傻瓜式安装教程 (Windows)
+## 安装教程 (Windows)
 > [!tip]
-> 要是实在不会, 就把该文档发给 ai, 让 ai 帮你装.
+> 要是实在不会, 就把该文档发给 ai, 让 ai 帮忙装.
 
 ### 1. 安装 Git for Windows
 直接到 Git [官网](https://git-scm.com/install/windows)上下载
@@ -42,11 +43,15 @@ winget install uv
 # 检查是否安装成功
 uv --version
 ```
-uv 默认把解释器/包/工具都装在C盘, 如果想改安装目录, 可以改环境变量`UV_CACHE_DIR`, `UV_PYTHON_INSTALL_DIR`, `UV_TOOL_BIN_DIR`, `UV_TOOL_DIR`(改完后需重启终端), 运行以下命令检查是否修改成功:
+uv 默认把解释器/包/工具都装在C盘, 如果想改安装目录, 可以改环境变量`UV_CACHE_DIR`, `UV_PYTHON_INSTALL_DIR`, `UV_TOOL_BIN_DIR`, `UV_TOOL_DIR`, 运行以下命令检查是否修改成功:
 ```bash
 uv python dir
 uv cache dir
 uv tool dir
+```
+不管改不改安装目录, 都需要运行以下命令并重启终端, 把`UV_TOOL_BIN_DIR`添加到PATH:
+```bash
+uv tool update-shell
 ```
 安装一个 Python 解释器:
 ```bash
@@ -64,28 +69,46 @@ git4subeditor --version
 ```
 
 ## 快速开始
-
+### 1. 初始化工作目录
+你的潜艇Mod目录(在`LocalMods`中)就是项目工作目录. 首先在目录中新建一个`.gitignore`文件(不要留后缀), 里面填让 Git 忽略的文件, 建议在里面添加这些内容:
+```
+# 忽略潜艇二进制文件, 否则版本库会变得很大
+*.sub
+*.bak
+# 一般没必要追踪图片, 也可能导致版本库变得很大
+*.png
+```
+运行这个工具需在当前潜艇Mod目录打开终端(右键目录背景->在终端中打开), 反正必须确保终端的工作目录是在你要修改的Mod的目录
+### 2. sub 转 XML
+若你的潜艇文件为`test.sub`, 执行命令:
 ```bash
-# 1. 在 .sub 旁边导出同名 XML 和预览图
-# 若 XML 已存在, 会询问是否覆盖: 输入 y 覆盖, 其他任意输入跳过
 git4subeditor export "test.sub"
+```
+将会得到2个文件: `test.xml`, `test.png`. 其中`test.xml`就是 Git 要追踪的文件.  
+默认直接输出到输入文件所在目录, 若 `xml` 已存在, 会询问是否覆盖: 输入 `y` 覆盖, 其他任意输入跳过
 
-# 得到:
-# test.xml
-# test.png
-
-# 2. 用 Git 管理 XML 和预览图
-
-# 3. 修改 XML 后重新打包
-git4subeditor pack "test.xml"
-
-# 如果 test.sub 已存在, 会先备份为:
-# test.sub.bak
-# 然后写入新的 test.sub
+### 2. 用 Git 管理 XML
+关于 Git 的使用, 可以看这个快速入门[教程](https://chriswenchen.github.io/theory-computing-physics-guide/docs/git), 最常用的就几个命令:
+```bash
+# 初始化版本库
+git init
+# 查看未提交改动(按q退出)
+git diff HEAD
+# 暂存所有改动
+git add .
+# 查看状态
+git status
+# 提交暂存区的内容到版本库
+git commit -m "这里写提交说明"
 ```
 
-`export` 默认直接输出到输入文件所在目录. `pack` 默认输出到 XML 同目录下的同名
-`.sub`; 如果目标已存在, 会自动备份后覆盖.
+对于不熟悉命令行的小白, 可以安装一些集成了 Git GUI 的 IDE, 如 [VSCode](https://code.visualstudio.com/Download)来可视化与提交修改; 实在不行就让 ai 来帮忙提交吧.
+### 3. XML 转 sub
+
+```bash
+git4subeditor pack "test.xml"
+```
+如果 `test.sub` 已存在, 会先备份为:`test.sub.bak`, 然后覆盖写入新的 `test.sub`
 
 ## 命令
 
@@ -104,7 +127,7 @@ git4subeditor export *.sub -o exported
 | 参数 | 说明 |
 | --- | --- |
 | `-o, --output-dir` | 输出目录, 默认与输入文件同目录 |
-| `--sort-attributes` | 按字母顺序排列 XML 属性(属性内部按字母顺序排列) |
+| `--sort-attributes` | 按字母顺序排列 XML 属性本身；Tags、items 等集合值始终排序 |
 | `-f, --force` | 跳过覆盖询问, 直接覆盖已存在的 XML 或预览图 |
 
 ### pack
@@ -145,28 +168,6 @@ git4subeditor unpack "test.sub" --stdout
 必须显式指定子命令, 例如 `git4subeditor unpack "test.sub"`. 直接传入文件名会
 报参数错误. 
 
-## Python API
-
-```python
-from pathlib import Path
-
-from git4subeditor import export_sub, pack_sub
-
-result = export_sub(Path("test.sub"))
-print(result.xml_path)
-print(result.preview_path)
-
-pack_sub(result.xml_path)
-```
-
-## Git 建议
-
-- 只提交 `<name>.xml` 和 `<name>.png`, 不要提交 `.sub`. 
-- 本仓库的 `.gitignore` 默认忽略 `*.sub` 和 `*.bak`, 但会正常跟踪 XML 和预览图. 
-- 本仓库的 `.gitattributes` 把导出的 `*.xml` 固定为 LF 换行, 并把 `.sub` 和图片
-  标记为二进制. 
-- 预览图是二进制文件. 如果体积较大, 可以考虑 Git LFS. 
-
 ## 注意事项
 
 - `checkval` 是游戏保存时写入的随机整数, 用于多人战役校验潜艇文件; 本工具不会
@@ -174,25 +175,8 @@ pack_sub(result.xml_path)
 - 游戏内部把 `Tags`, `requireditem` 的 `items` 等属性保存为无序集合, 重新保存时
   可能整体换序. `export` 和 `pack` 会自动按字母排序这些集合值, 避免无意义的
   全文件 diff. 首次使用新版本重新导出时, 可能产生一次集合排序 diff. 
-- XML 属性顺序默认保持游戏原样. 如果希望跨游戏版本获得更稳定的 diff, 可以使用
-  `--sort-attributes`; 首次启用会产生一次属性顺序 diff.
 - `preview` 是相对 XML 所在目录的路径. 移动或重命名 XML 时, 请一起移动或重命名
   预览图, 并同步修改 `preview` 属性. 
 - 如果没有 `preview` 属性, `pack` 会按扩展名优先级查找同名图片 (PNG 优先).
   不要在同一目录保留多个同名不同扩展名的候选图片. 
-- 重新打包后建议进入游戏编辑器打开一次, 确认潜艇可以正常加载. 
-
-## 开发
-
-```bash
-uv sync --extra dev
-uv run pytest
-uv run ruff check .
-uv run ruff format --check .
-```
-
-## 后续计划
-
-- Git clean/smudge filter, 让 `.sub` 在仓库中自动以 XML 形式存储
-- XML 结构校验
-- 预览图差异可视化
+- 重新打包后建议进入游戏编辑器打开一次, 确认潜艇可以正常加载.
