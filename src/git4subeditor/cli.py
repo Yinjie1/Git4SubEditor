@@ -1,7 +1,6 @@
 """Command-line interface for git4subeditor."""
 
 import argparse
-import shutil
 import sys
 from pathlib import Path
 
@@ -13,48 +12,7 @@ from git4subeditor.initialize import (
     initialize_project,
 )
 from git4subeditor.subfile import SubFileError, unpack_sub
-
-_BANNER = """\
- ██████╗ ██╗████████╗    ██╗  ██╗
-██╔════╝ ██║╚══██╔══╝    ██║  ██║
-██║  ███╗██║   ██║       ███████║
-██║   ██║██║   ██║       ╚════██║
-╚██████╔╝██║   ██║            ██║
- ╚═════╝ ╚═╝   ╚═╝            ╚═╝
-
-███████╗██╗   ██╗██████╗ ███████╗██████╗ ██╗████████╗ ██████╗ ██████╗
-██╔════╝██║   ██║██╔══██╗██╔════╝██╔══██╗██║╚══██╔══╝██╔═══██╗██╔══██╗
-███████╗██║   ██║██████╔╝█████╗  ██║  ██║██║   ██║   ██║   ██║██████╔╝
-╚════██║██║   ██║██╔══██╗██╔══╝  ██║  ██║██║   ██║   ██║   ██║██╔══██╗
-███████║╚██████╔╝██████╔╝███████╗██████╔╝██║   ██║   ╚██████╔╝██║  ██║
-╚══════╝ ╚═════╝ ╚═════╝ ╚══════╝╚═════╝ ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝
-"""
-
-
-def _build_banner() -> tuple[str, ...]:
-    """Build the banner with author and version beside the first lines."""
-    lines: list[str] = [line.rstrip() for line in _BANNER.splitlines()]
-    text_column: int = max(len(lines[0]), len(lines[1])) + 4
-    lines[0] = f"{lines[0]:<{text_column}}by Yinjie"
-    lines[1] = f"{lines[1]:<{text_column}}{__version__}"
-    return tuple(lines)
-
-
-_BANNER_LINES: tuple[str, ...] = _build_banner()
-_BANNER_WIDTH: int = max(len(line) for line in _BANNER_LINES)
-
-
-def _print_banner() -> None:
-    """Print the banner when the terminal is wide enough."""
-    if sys.stdout is None:
-        return
-    columns: int = shutil.get_terminal_size(fallback=(80, 24)).columns
-    if columns < _BANNER_WIDTH:
-        return
-    try:
-        print("\n".join(_BANNER_LINES))
-    except UnicodeEncodeError:
-        pass
+from git4subeditor.utils import format_warning, print_banner
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -192,7 +150,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
     if args.command == "init":
-        _print_banner()
+        print_banner(__version__)
         try:
             result = initialize_project()
         except InitializeError as exc:
@@ -204,20 +162,26 @@ def main(argv: list[str] | None = None) -> int:
         if not result.current_git_repository:
             if result.git_repository_path:
                 print(
-                    "warning: current directory is not a Git repository; "
-                    f"using {result.git_repository_path}",
+                    format_warning(
+                        "current directory is not a Git repository; "
+                        f"using {result.git_repository_path}"
+                    ),
                     file=sys.stderr,
                 )
             else:
                 print(
-                    "warning: no Git repository found up to the MOD root; "
-                    "run 'git init' to initialize one",
+                    format_warning(
+                        "no Git repository found up to the MOD root; "
+                        "run 'git init' to initialize one"
+                    ),
                     file=sys.stderr,
                 )
         if result.upper_git_repository_path is not None:
             print(
-                "warning: this project also has an upper-level Git "
-                f"repository: {result.upper_git_repository_path}",
+                format_warning(
+                    "this project also has an upper-level Git "
+                    f"repository: {result.upper_git_repository_path}"
+                ),
                 file=sys.stderr,
             )
         if result.gitignore_created:

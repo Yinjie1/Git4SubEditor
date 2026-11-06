@@ -10,6 +10,8 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from git4subeditor.utils import format_warning
+
 GZIP_MAGIC: bytes = b"\x1f\x8b"
 
 
@@ -96,8 +98,10 @@ def decode_xml(data: bytes, encoding: str | None = None) -> str:
             raise SubFileError(f"failed to decode as UTF-16: {exc}") from exc
 
     print(
-        "warning: input is not valid UTF-8/UTF-16, decoding as UTF-8 with "
-        "replacement characters",
+        format_warning(
+            "input is not valid UTF-8/UTF-16, decoding as UTF-8 with "
+            "replacement characters"
+        ),
         file=sys.stderr,
     )
     return data.decode("utf-8", errors="replace")
