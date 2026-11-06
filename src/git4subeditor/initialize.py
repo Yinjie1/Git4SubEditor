@@ -32,6 +32,21 @@ class SubmarineEntry:
 
 
 @dataclass(frozen=True, slots=True)
+class SubmarinePathChange:
+    """A registered submarine whose path was updated.
+
+    Attributes:
+        name: Submarine name.
+        old_path: Previous path relative to the Git repository root.
+        new_path: New path relative to the Git repository root.
+    """
+
+    name: str
+    old_path: str
+    new_path: str
+
+
+@dataclass(frozen=True, slots=True)
 class InitResult:
     """Result of initializing a submarine workspace.
 
@@ -50,6 +65,8 @@ class InitResult:
             to the workspace, or None when no upper-level repository exists.
         submarines: Submarine files found below the Git repository root, with
             paths relative to that root.
+        submarine_path_changes: Registered submarines whose paths were updated
+            because a file with the same name was found at a different path.
     """
 
     gitignore_path: Path
@@ -62,6 +79,7 @@ class InitResult:
     current_git_repository: bool
     upper_git_repository_path: str | None
     submarines: tuple[SubmarineEntry, ...]
+    submarine_path_changes: tuple[SubmarinePathChange, ...]
 
 
 def initialize_project(
@@ -77,9 +95,10 @@ def initialize_project(
     Existing user preferences are preserved. The ``gitRepo``, ``modRoot``,
     and ``version`` fields are updated. The project name is taken from the
     nearest ancestor directory containing ``filelist.xml``. After the Git
-    repository is located, every ``.sub`` file below its root is registered
-    in the ``submarines`` section of the configuration, with a ``preview``
-    attribute pointing to the matching ``.png`` path.
+    repository is located, ``.sub`` files below its root are registered in
+    the ``submarines`` section. Existing entries are matched by name: a
+    changed path is updated while ``preview`` is preserved, and new entries
+    get a derived ``.png`` preview.
 
     Args:
         directory: Workspace directory. Defaults to the current working
@@ -114,7 +133,12 @@ def initialize_project(
     project_name: str = mod_root.name or str(mod_root)
     mod_root_path: str = _relative_path(base.resolve(), mod_root)
     gitignore_path, added, gitignore_created = _update_gitignore(base)
-    config_path, config_created, config_updated = _create_project_config(
+    (
+        config_path,
+        config_created,
+        config_updated,
+        submarine_path_changes,
+    ) = _create_project_config(
         base,
         project_name,
         repository_path,
@@ -133,6 +157,7 @@ def initialize_project(
         current_git_repository=current_repository,
         upper_git_repository_path=upper_repository,
         submarines=submarines,
+        submarine_path_changes=submarine_path_changes,
     )
 
 
@@ -251,7 +276,7 @@ def _create_project_config(
     mod_root_path: str,
     language: str | None,
     submarines: tuple[SubmarineEntry, ...],
-) -> tuple[Path, bool, bool]:
+) -> tuple[Path, bool, bool, tuple[SubmarinePathChange, ...]]:
     """Create or update the project configuration file."""
     path: Path = base / "git4subeditor.xml"
     try:
@@ -267,9 +292,9 @@ def _create_project_config(
         _set_config_value(root, "gitRepo", repository_path)
         _set_config_value(root, "modRoot", mod_root_path)
         _set_config_value(root, "version", __version__)
-        _sync_submarines(root, submarines)
+        _, path_changes = _sync_submarines(root, submarines)
         _write_project_config(path, root)
-        return path, True, False
+        return path, True, False, path_changes
     except ET.ParseError as exc:
         raise InitializeError(t("err.invalid_config", path=path, error=exc)) from exc
 
@@ -295,54 +320,66 @@ def _create_project_config(
     changed |= _set_config_value(root, "gitRepo", repository_path)
     changed |= _set_config_value(root, "modRoot", mod_root_path)
     changed |= _set_config_value(root, "version", __version__)
-    changed |= _sync_submarines(root, submarines)
+    registry_changed, path_changes = _sync_submarines(root, submarines)
+    changed |= registry_changed
     if changed:
         _write_project_config(path, root)
-    return path, False, changed
+    return path, False, changed, path_changes
 
 
 def _sync_submarines(
     root: ET.Element,
     submarines: tuple[SubmarineEntry, ...],
-) -> bool:
-    """Replace the submarine registry and return whether it changed.
+) -> tuple[bool, tuple[SubmarinePathChange, ...]]:
+    """Update the submarine registry and report path changes.
 
-    Stale entries are dropped, so the registry always mirrors the current
-    scan results. Existing ``preview`` attributes are overwritten with the
-    derived ``.png`` path, so a manually removed attribute is restored by the
-    next initialization.
+    Existing entries are matched by name. When both the name and path match,
+    the entry is left untouched. When the name matches but the path differs,
+    only the path is updated; ``preview`` and any other attributes are
+    preserved. New names are appended with their derived preview. Entries
+    whose names are no longer found are removed.
 
     Args:
         root: Root element of the project configuration.
-        submarines: Entries that should be registered.
+        submarines: Entries found by the current scan.
 
     Returns:
-        Whether the configuration changed.
+        Whether the configuration changed, and the path changes that occurred.
     """
     element: ET.Element | None = root.find("submarines")
-    existing: list[tuple[str, str, str]] = []
-    if element is not None:
-        existing = [
-            (
-                child.get("name", ""),
-                child.get("path", ""),
-                child.get("preview", ""),
-            )
-            for child in element.findall("submarine")
-        ]
-    expected: list[tuple[str, str, str]] = [
-        (entry.name, entry.path, entry.preview) for entry in submarines
-    ]
-    if element is not None and len(element) == len(expected) and existing == expected:
-        return False
-
+    changed: bool = False
     if element is None:
         element = ET.SubElement(root, "submarines")
-    else:
-        for child in list(element):
+        changed = True
+
+    existing: dict[str, ET.Element] = {}
+    for child in list(element.findall("submarine")):
+        name: str = (child.get("name") or "").strip()
+        if not name or name in existing:
             element.remove(child)
+            changed = True
+            continue
+        existing[name] = child
+
+    path_changes: list[SubmarinePathChange] = []
+    seen: set[str] = set()
     for entry in submarines:
-        ET.SubElement(
+        seen.add(entry.name)
+        child: ET.Element | None = existing.get(entry.name)
+        if child is not None:
+            old_path: str = (child.get("path") or "").strip()
+            if old_path != entry.path:
+                child.set("path", entry.path)
+                path_changes.append(
+                    SubmarinePathChange(
+                        name=entry.name,
+                        old_path=old_path,
+                        new_path=entry.path,
+                    )
+                )
+                changed = True
+            continue
+        child = ET.SubElement(
             element,
             "submarine",
             {
@@ -351,7 +388,15 @@ def _sync_submarines(
                 "preview": entry.preview,
             },
         )
-    return True
+        existing[entry.name] = child
+        changed = True
+
+    for name, child in existing.items():
+        if name not in seen:
+            element.remove(child)
+            changed = True
+
+    return changed, tuple(path_changes)
 
 
 def _set_config_value(root: ET.Element, tag: str, value: str) -> bool:

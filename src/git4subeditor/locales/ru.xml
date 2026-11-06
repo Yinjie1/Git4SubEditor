@@ -39,6 +39,7 @@
   <message key="warning.current_not_repo">текущий каталог не является Git-репозиторием; используется {path}</message>
   <message key="warning.no_repo">Git-репозиторий не найден до корня мода; выполните 'git init' для инициализации</message>
   <message key="warning.upper_repo">у этого проекта также есть родительский Git-репозиторий: {path}</message>
+  <message key="warning.submarine_path_changed">путь подводной лодки {name} изменён с {old_path} на {new_path}; не используйте одинаковые имена для подводных лодок в разных каталогах</message>
   <message key="warning.preview_missing">изображение предпросмотра не найдено: {path}; предпросмотр будет пустым</message>
   <message key="warning.registry_preview_failed">не удалось прочитать предпросмотр для подводной лодки {name}; используется предпросмотр по умолчанию</message>
   <message key="warning.decode_replace">входные данные не являются допустимым UTF-8/UTF-16; декодирование как UTF-8 с символами замены</message>
