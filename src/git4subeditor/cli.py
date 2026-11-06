@@ -6,7 +6,11 @@ from pathlib import Path
 
 from git4subeditor import __version__
 from git4subeditor.gitformat import export_sub, pack_sub
-from git4subeditor.initialize import IGNORE_PATTERNS, initialize_project
+from git4subeditor.initialize import (
+    IGNORE_PATTERNS,
+    InitializeError,
+    initialize_project,
+)
 from git4subeditor.subfile import SubFileError, unpack_sub
 
 
@@ -147,9 +151,18 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "init":
         try:
             result = initialize_project()
+        except InitializeError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
         except OSError as exc:
             print(f"error: cannot initialize project: {exc}", file=sys.stderr)
             return 1
+        if not result.git_repository_found:
+            print(
+                f"warning: no Git repository found in {Path.cwd()}; "
+                "run 'git init' to initialize one",
+                file=sys.stderr,
+            )
         if result.gitignore_created:
             print(
                 f"created {result.gitignore_path.name}; added {', '.join(result.added)}"
@@ -165,6 +178,8 @@ def main(argv: list[str] | None = None) -> int:
             )
         if result.config_created:
             print(f"created {result.config_path.name}")
+        elif result.config_updated:
+            print(f"updated {result.config_path.name}")
         else:
             print(f"{result.config_path.name} already exists")
         return 0

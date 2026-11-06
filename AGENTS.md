@@ -1,4 +1,7 @@
 # AGENTS 使用说明
+## 本项目
+1. 每次更改后给一个简短提交说明
+2. 不要修改README.md
 
 ## Typing Rules
 

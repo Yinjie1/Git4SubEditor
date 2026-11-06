@@ -3,6 +3,7 @@
 *.bak
 *.png
 docs/
+git4subeditor.xml
 *.code-workspace
 filelist.xml
 opencode.jsonc
