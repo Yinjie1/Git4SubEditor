@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 
+from git4subeditor import __version__
+
 IGNORE_PATTERNS: tuple[str, ...] = ("*.sub", "*.bak", "*.png")
 
 
@@ -21,7 +23,7 @@ class InitResult:
         added: Ignore patterns added to .gitignore by this call.
         gitignore_created: Whether the .gitignore file was created.
         config_created: Whether the project configuration file was created.
-        config_updated: Whether the git repository path was written or changed.
+        config_updated: Whether the project configuration file was rewritten.
         git_repository_path: Repository path relative to the workspace, or an
             empty string when no repository was found.
         current_git_repository: Whether the workspace itself is a repository
@@ -48,9 +50,9 @@ def initialize_project(directory: Path | None = None) -> InitResult:
     existing file is missing patterns, they are appended in a marked block.
     Existing content is never rewritten.
 
-    Existing user preferences are preserved. The ``gitRepository`` field is
-    updated to the detected repository path. The project name is taken from
-    the nearest ancestor directory containing ``filelist.xml``.
+    Existing user preferences are preserved. The ``gitRepo``, ``modRoot``,
+    and ``version`` fields are updated. The project name is taken from the
+    nearest ancestor directory containing ``filelist.xml``.
 
     Args:
         directory: Workspace directory. Defaults to the current working
@@ -77,9 +79,10 @@ def initialize_project(directory: Path | None = None) -> InitResult:
         base, mod_root
     )
     project_name: str = mod_root.name or str(mod_root)
+    mod_root_path: str = _relative_path(base.resolve(), mod_root)
     gitignore_path, added, gitignore_created = _update_gitignore(base)
     config_path, config_created, config_updated = _create_project_config(
-        base, project_name, repository_path
+        base, project_name, repository_path, mod_root_path
     )
     return InitResult(
         gitignore_path=gitignore_path,
@@ -167,7 +170,10 @@ def _relative_path(current: Path, target: Path) -> str:
 
 
 def _create_project_config(
-    base: Path, project_name: str, repository_path: str
+    base: Path,
+    project_name: str,
+    repository_path: str,
+    mod_root_path: str,
 ) -> tuple[Path, bool, bool]:
     """Create or update the project configuration file."""
     path: Path = base / "git4subeditor.xml"
@@ -176,28 +182,40 @@ def _create_project_config(
         root: ET.Element = ET.parse(path, parser=parser).getroot()
     except FileNotFoundError:
         root = ET.Element("git4subeditor")
-        project_name_element: ET.Element = ET.SubElement(root, "projectName")
-        project_name_element.text = project_name
-        language: ET.Element = ET.SubElement(root, "language")
-        language.text = ""
-        repository: ET.Element = ET.SubElement(root, "gitRepository")
-        repository.text = repository_path
+        _set_config_value(root, "projectName", project_name)
+        _set_config_value(root, "language", "")
+        _set_config_value(root, "gitRepo", repository_path)
+        _set_config_value(root, "modRoot", mod_root_path)
+        _set_config_value(root, "version", __version__)
         _write_project_config(path, root)
         return path, True, False
     except ET.ParseError as exc:
         raise InitializeError(f"invalid project configuration {path}: {exc}") from exc
 
     changed: bool = False
-    repository: ET.Element | None = root.find("gitRepository")
-    if repository is None:
-        repository = ET.SubElement(root, "gitRepository")
+    legacy: ET.Element | None = root.find("gitRepository")
+    if legacy is not None:
+        root.remove(legacy)
         changed = True
-    if (repository.text or "") != repository_path:
-        repository.text = repository_path
-        changed = True
+    changed |= _set_config_value(root, "gitRepo", repository_path)
+    changed |= _set_config_value(root, "modRoot", mod_root_path)
+    changed |= _set_config_value(root, "version", __version__)
     if changed:
         _write_project_config(path, root)
     return path, False, changed
+
+
+def _set_config_value(root: ET.Element, tag: str, value: str) -> bool:
+    """Set a configuration value and return whether it changed."""
+    element: ET.Element | None = root.find(tag)
+    changed: bool = False
+    if element is None:
+        element = ET.SubElement(root, tag)
+        changed = True
+    if (element.text or "") != value:
+        element.text = value
+        changed = True
+    return changed
 
 
 def _write_project_config(path: Path, root: ET.Element) -> None:
