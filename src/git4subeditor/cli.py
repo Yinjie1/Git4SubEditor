@@ -180,7 +180,7 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 format_warning(
                     "this project also has an upper-level Git "
-                    f"repository: {result.upper_git_repository_path}"
+                    f"repo: {result.upper_git_repository_path}"
                 ),
                 file=sys.stderr,
             )
