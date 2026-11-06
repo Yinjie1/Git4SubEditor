@@ -10,6 +10,7 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from git4subeditor.l10n import t
 from git4subeditor.utils import format_warning
 
 GZIP_MAGIC: bytes = b"\x1f\x8b"
@@ -34,7 +35,7 @@ def read_sub_bytes(path: Path) -> bytes:
     try:
         return path.read_bytes()
     except OSError as exc:
-        raise SubFileError(f"cannot read file {path}: {exc}") from exc
+        raise SubFileError(t("err.read_file", path=path, error=exc)) from exc
 
 
 def decompress_sub(data: bytes) -> bytes:
@@ -59,7 +60,7 @@ def decompress_sub(data: bytes) -> bytes:
             with gzip.GzipFile(fileobj=io.BytesIO(data)) as stream:
                 return stream.read()
         except (OSError, EOFError) as exc:
-            raise SubFileError(f"gzip decompression failed: {exc}") from exc
+            raise SubFileError(t("err.gzip_decompress", error=exc)) from exc
     return data
 
 
@@ -84,7 +85,7 @@ def decode_xml(data: bytes, encoding: str | None = None) -> str:
         try:
             return data.decode(encoding)
         except (LookupError, UnicodeDecodeError) as exc:
-            raise SubFileError(f"failed to decode as {encoding}: {exc}") from exc
+            raise SubFileError(t("err.decode", encoding=encoding, error=exc)) from exc
 
     try:
         return data.decode("utf-8-sig")
@@ -95,13 +96,10 @@ def decode_xml(data: bytes, encoding: str | None = None) -> str:
         try:
             return data.decode("utf-16")
         except UnicodeDecodeError as exc:
-            raise SubFileError(f"failed to decode as UTF-16: {exc}") from exc
+            raise SubFileError(t("err.decode_utf16", error=exc)) from exc
 
     print(
-        format_warning(
-            "input is not valid UTF-8/UTF-16, decoding as UTF-8 with "
-            "replacement characters"
-        ),
+        format_warning(t("warning.decode_replace")),
         file=sys.stderr,
     )
     return data.decode("utf-8", errors="replace")
@@ -119,7 +117,7 @@ def validate_xml(text: str) -> None:
     try:
         ET.fromstring(text)
     except ET.ParseError as exc:
-        raise SubFileError(f"decompressed data is not valid XML: {exc}") from exc
+        raise SubFileError(t("err.invalid_decompressed_xml", error=exc)) from exc
 
 
 def unpack_sub(
@@ -166,9 +164,7 @@ def unpack_sub(
     try:
         target_dir.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
-        raise SubFileError(
-            f"cannot create output directory {target_dir}: {exc}"
-        ) from exc
+        raise SubFileError(t("err.create_dir", path=target_dir, error=exc)) from exc
 
     dst: Path = target_dir / f"{src.stem}.xml"
     try:
@@ -176,16 +172,22 @@ def unpack_sub(
             stream.write(text)
     except FileExistsError as exc:
         if not force:
-            raise SubFileError(
-                f"output file already exists: {dst} (use --force)"
-            ) from exc
+            raise SubFileError(t("err.output_exists", path=dst)) from exc
         try:
             dst.write_text(text, encoding="utf-8", newline="\n")
         except OSError as write_exc:
-            raise SubFileError(f"cannot write {dst}: {write_exc}") from write_exc
+            raise SubFileError(t("err.write", path=dst, error=write_exc)) from write_exc
     except OSError as exc:
-        raise SubFileError(f"cannot write {dst}: {exc}") from exc
+        raise SubFileError(t("err.write", path=dst, error=exc)) from exc
 
-    kind: str = "gzip" if is_gzip else "plain XML"
-    print(f"{src.name} -> {dst}  [{kind}, {len(xml_bytes):,} bytes]")
+    kind: str = t("kind.gzip") if is_gzip else t("kind.plain_xml")
+    print(
+        t(
+            "status.unpack",
+            src=src.name,
+            dst=dst,
+            kind=kind,
+            bytes=f"{len(xml_bytes):,}",
+        )
+    )
     return dst

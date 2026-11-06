@@ -17,6 +17,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 
+from git4subeditor.l10n import t
 from git4subeditor.subfile import (
     GZIP_MAGIC,
     SubFileError,
@@ -83,7 +84,7 @@ def parse_xml(text: str) -> ET.Element:
     try:
         return ET.fromstring(text, parser=parser)
     except ET.ParseError as exc:
-        raise SubFileError(f"invalid XML: {exc}") from exc
+        raise SubFileError(t("err.invalid_xml", error=exc)) from exc
 
 
 def serialize_xml(
@@ -143,7 +144,7 @@ def extract_preview_image(root: ET.Element) -> tuple[bytes, str] | None:
     try:
         image = base64.b64decode(compact, validate=True)
     except (binascii.Error, ValueError) as exc:
-        raise SubFileError(f"previewimage is not valid base64: {exc}") from exc
+        raise SubFileError(t("err.invalid_base64", error=exc)) from exc
 
     del root.attrib[PREVIEW_ATTRIBUTE]
     return image, _guess_image_suffix(image)
@@ -201,9 +202,7 @@ def export_sub(
     try:
         target_dir.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
-        raise SubFileError(
-            f"cannot create output directory {target_dir}: {exc}"
-        ) from exc
+        raise SubFileError(t("err.create_dir", path=target_dir, error=exc)) from exc
 
     xml_path = target_dir / f"{src.stem}.xml"
     preview_path = (
@@ -268,10 +267,10 @@ def pack_sub(
     try:
         raw: bytes = xml_path.read_bytes()
     except OSError as exc:
-        raise SubFileError(f"cannot read file {xml_path}: {exc}") from exc
+        raise SubFileError(t("err.read_file", path=xml_path, error=exc)) from exc
 
     if raw.startswith(GZIP_MAGIC):
-        raise SubFileError(f"{xml_path} looks like a .sub file; export it to XML first")
+        raise SubFileError(t("err.pack_sub_input", path=xml_path))
 
     root: ET.Element = parse_xml(decode_xml(raw))
     _require_submarine_root(root)
@@ -283,20 +282,17 @@ def pack_sub(
             preview = preview_path.read_bytes()
         except FileNotFoundError:
             print(
-                format_warning(
-                    f"preview image not found: {preview_path}; "
-                    "preview will be left empty"
-                ),
+                format_warning(t("warning.preview_missing", path=preview_path)),
                 file=sys.stderr,
             )
             preview = None
         except OSError as exc:
             raise SubFileError(
-                f"cannot read preview image {preview_path}: {exc}"
+                t("err.read_preview", path=preview_path, error=exc)
             ) from exc
         if preview is not None:
             if not preview:
-                raise SubFileError(f"preview image is empty: {preview_path}")
+                raise SubFileError(t("err.empty_preview", path=preview_path))
             embed_preview_image(root, preview)
 
     text: str = serialize_xml(
@@ -310,9 +306,7 @@ def pack_sub(
     try:
         dst.parent.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
-        raise SubFileError(
-            f"cannot create output directory {dst.parent}: {exc}"
-        ) from exc
+        raise SubFileError(t("err.create_dir", path=dst.parent, error=exc)) from exc
     _backup_existing(dst)
     _write_bytes(dst, compressed)
     return dst
@@ -321,7 +315,7 @@ def pack_sub(
 def _require_submarine_root(root: ET.Element) -> None:
     """Check that the root element is a Submarine element."""
     if root.tag != "Submarine":
-        raise SubFileError(f"expected <Submarine> root, found <{root.tag}>")
+        raise SubFileError(t("err.submarine_root", tag=root.tag))
 
 
 def _canonicalize_unordered_attributes(element: ET.Element) -> None:
@@ -365,7 +359,7 @@ def _resolve_pack_output(xml_path: Path, out: Path | None) -> Path:
 def _resolve_preview_link(xml_path: Path, link: str) -> Path:
     """Resolve a relative preview link against the XML file's directory."""
     if not link.strip():
-        raise SubFileError("preview link is empty")
+        raise SubFileError(t("err.empty_preview_link"))
     path = Path(link)
     return path if path.is_absolute() else xml_path.parent / path
 
@@ -375,13 +369,15 @@ def _backup_existing(path: Path) -> Path | None:
     if not path.exists():
         return None
     if not path.is_file():
-        raise SubFileError(f"output path is not a regular file: {path}")
+        raise SubFileError(t("err.not_regular_file", path=path))
 
     backup = path.with_name(f"{path.name}.bak")
     try:
         shutil.copy2(path, backup)
     except OSError as exc:
-        raise SubFileError(f"cannot back up {path} to {backup}: {exc}") from exc
+        raise SubFileError(
+            t("err.backup", path=path, backup=backup, error=exc)
+        ) from exc
     return backup
 
 
@@ -390,9 +386,9 @@ def _ensure_writable(path: Path, force: bool) -> None:
     if not path.exists():
         return
     if not force:
-        raise SubFileError(f"output file already exists: {path} (use --force)")
+        raise SubFileError(t("err.output_exists", path=path))
     if not path.is_file():
-        raise SubFileError(f"output path is not a regular file: {path}")
+        raise SubFileError(t("err.not_regular_file", path=path))
 
 
 def _write_text(path: Path, text: str) -> None:
@@ -400,7 +396,7 @@ def _write_text(path: Path, text: str) -> None:
     try:
         path.write_text(text, encoding="utf-8", newline="\n")
     except OSError as exc:
-        raise SubFileError(f"cannot write {path}: {exc}") from exc
+        raise SubFileError(t("err.write", path=path, error=exc)) from exc
 
 
 def _write_bytes(path: Path, data: bytes) -> None:
@@ -408,7 +404,7 @@ def _write_bytes(path: Path, data: bytes) -> None:
     try:
         path.write_bytes(data)
     except OSError as exc:
-        raise SubFileError(f"cannot write {path}: {exc}") from exc
+        raise SubFileError(t("err.write", path=path, error=exc)) from exc
 
 
 def _compress_xml(data: bytes, compresslevel: int) -> bytes:
@@ -423,5 +419,5 @@ def _compress_xml(data: bytes, compresslevel: int) -> bytes:
         ) as stream:
             stream.write(data)
     except OSError as exc:
-        raise SubFileError(f"gzip compression failed: {exc}") from exc
+        raise SubFileError(t("err.gzip_compress", error=exc)) from exc
     return buffer.getvalue()

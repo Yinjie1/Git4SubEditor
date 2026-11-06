@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='utf-8'?>
+<locale language="cn">
+  <message key="app.description">在 Barotrauma .sub 文件与 Git 友好的 XML 之间转换.</message>
+  <message key="metavar.command">命令</message>
+  <message key="arg.version">显示程序版本并退出</message>
+  <message key="arg.help">显示帮助并退出</message>
+  <message key="help.usage">用法: </message>
+  <message key="help.positionals">位置参数</message>
+  <message key="help.options">选项</message>
+
+  <message key="command.init">为工作区创建 .gitignore 和项目配置</message>
+  <message key="command.unpack">从 .sub 文件中提取原始 XML</message>
+  <message key="command.export">将 .sub 文件导出为规范化 XML 和预览图</message>
+  <message key="command.pack">将导出的 XML 打包回 .sub 文件</message>
+
+  <message key="arg.inputs.sub">一个或多个 .sub 文件</message>
+  <message key="arg.inputs.xml">一个或多个导出的 XML 文件</message>
+  <message key="arg.output_dir">输出目录, 默认为每个输入文件所在目录</message>
+  <message key="arg.encoding">强制指定 XML 编码, 不自动检测 UTF-8/UTF-16</message>
+  <message key="arg.stdout">将 XML 输出到 stdout, 不写入文件</message>
+  <message key="arg.no_validate">跳过 XML 格式检查</message>
+  <message key="arg.force">直接覆盖已存在的输出文件, 不询问</message>
+  <message key="arg.sort_attributes">按字母顺序排序 XML 属性, 使 diff 更稳定</message>
+  <message key="arg.sort_attributes_pack">打包前按字母顺序排序 XML 属性</message>
+  <message key="arg.output">输出 .sub 文件, 或一个已存在的目录; 默认为 XML 文件所在目录</message>
+
+  <message key="err.stdout_single">--stdout 只能接受一个输入文件</message>
+  <message key="err.output_multi">打包多个文件时, --output 必须是已存在的目录</message>
+  <message key="prompt.overwrite">{path} 已存在. 是否覆盖? [y/N] </message>
+  <message key="status.skipped">已跳过: {path}</message>
+  <message key="status.export_preview">{src} -> {xml}, 预览图: {preview}</message>
+  <message key="status.export_no_preview">{src} -> {xml}, 无预览图</message>
+  <message key="status.pack">{src} -> {dst}</message>
+  <message key="status.unpack">{src} -> {dst}  [{kind}, {bytes} 字节]</message>
+  <message key="kind.gzip">gzip</message>
+  <message key="kind.plain_xml">纯 XML</message>
+  <message key="status.git_repo">Git repo: {path}</message>
+
+  <message key="warning.current_not_repo">当前目录不是 Git 仓库; 使用 {path}</message>
+  <message key="warning.no_repo">在模组根目录范围内未找到 Git 仓库; 请运行 'git init' 初始化</message>
+  <message key="warning.upper_repo">本项目还存在上级 Git 仓库: {path}</message>
+  <message key="warning.preview_missing">找不到预览图: {path}; 预览将留空</message>
+  <message key="warning.decode_replace">输入不是有效的 UTF-8/UTF-16, 将使用替换字符按 UTF-8 解码</message>
+
+  <message key="init.created_gitignore">已创建 {name}; 添加 {patterns}</message>
+  <message key="init.updated_gitignore">已更新 {name}; 添加 {patterns}</message>
+  <message key="init.gitignore_ok">{name} 已忽略 {patterns}</message>
+  <message key="init.config_created">已创建 {name}</message>
+  <message key="init.config_updated">已更新 {name}</message>
+  <message key="init.config_exists">{name} 已存在</message>
+  <message key="err.init">无法初始化项目: {error}</message>
+  <message key="err.not_mod">不是一个 Barotrauma MOD 项目: 在 {path} 及其上级目录中找不到 filelist.xml</message>
+  <message key="err.invalid_config">项目配置无效 {path}: {error}</message>
+  <message key="err.invalid_xml">XML 无效: {error}</message>
+  <message key="err.invalid_base64">previewimage 不是有效的 base64: {error}</message>
+  <message key="err.read_file">无法读取文件 {path}: {error}</message>
+  <message key="err.pack_sub_input">{path} 看起来是 .sub 文件; 请先导出为 XML</message>
+  <message key="err.read_preview">无法读取预览图 {path}: {error}</message>
+  <message key="err.empty_preview">预览图为空: {path}</message>
+  <message key="err.create_dir">无法创建输出目录 {path}: {error}</message>
+  <message key="err.submarine_root">需要 &lt;Submarine&gt; 根节点, 实际为 &lt;{tag}&gt;</message>
+  <message key="err.empty_preview_link">preview 链接为空</message>
+  <message key="err.not_regular_file">输出路径不是普通文件: {path}</message>
+  <message key="err.backup">无法将 {path} 备份到 {backup}: {error}</message>
+  <message key="err.output_exists">输出文件已存在: {path} (使用 --force)</message>
+  <message key="err.write">无法写入 {path}: {error}</message>
+  <message key="err.gzip_compress">gzip 压缩失败: {error}</message>
+  <message key="err.gzip_decompress">gzip 解压失败: {error}</message>
+  <message key="err.decode">无法按 {encoding} 解码: {error}</message>
+  <message key="err.decode_utf16">无法按 UTF-16 解码: {error}</message>
+  <message key="err.invalid_decompressed_xml">解压后的数据不是有效 XML: {error}</message>
+</locale>

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from git4subeditor import __version__
+from git4subeditor.l10n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, t
 
 IGNORE_PATTERNS: tuple[str, ...] = ("*.sub", "*.bak", "*.png")
 
@@ -135,10 +136,7 @@ def _find_mod_root(base: Path) -> Path:
     for directory in (current, *current.parents):
         if (directory / "filelist.xml").is_file():
             return directory
-    raise InitializeError(
-        f"not a Barotrauma MOD project: filelist.xml not found in "
-        f"{current} or its parent directories"
-    )
+    raise InitializeError(t("err.not_mod", path=current))
 
 
 def _find_git_repository(base: Path, mod_root: Path) -> tuple[str, bool, str | None]:
@@ -183,20 +181,26 @@ def _create_project_config(
     except FileNotFoundError:
         root = ET.Element("git4subeditor")
         _set_config_value(root, "projectName", project_name)
-        _set_config_value(root, "language", "")
+        _set_config_value(root, "language", DEFAULT_LANGUAGE)
         _set_config_value(root, "gitRepo", repository_path)
         _set_config_value(root, "modRoot", mod_root_path)
         _set_config_value(root, "version", __version__)
         _write_project_config(path, root)
         return path, True, False
     except ET.ParseError as exc:
-        raise InitializeError(f"invalid project configuration {path}: {exc}") from exc
+        raise InitializeError(t("err.invalid_config", path=path, error=exc)) from exc
 
     changed: bool = False
     legacy: ET.Element | None = root.find("gitRepository")
     if legacy is not None:
         root.remove(legacy)
         changed = True
+    language: ET.Element | None = root.find("language")
+    current_language: str = (
+        (language.text or "").strip().lower() if language is not None else ""
+    )
+    if current_language not in SUPPORTED_LANGUAGES:
+        changed |= _set_config_value(root, "language", DEFAULT_LANGUAGE)
     changed |= _set_config_value(root, "gitRepo", repository_path)
     changed |= _set_config_value(root, "modRoot", mod_root_path)
     changed |= _set_config_value(root, "version", __version__)
