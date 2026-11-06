@@ -48,6 +48,7 @@
   <message key="init.config_created">создан {name}</message>
   <message key="init.config_updated">обновлён {name}</message>
   <message key="init.config_exists">{name} уже существует</message>
+  <message key="init.registered">зарегистрировано {count} файлов подводных лодок</message>
   <message key="init.language_set">Язык установлен: русский</message>
   <message key="err.init">не удалось инициализировать проект: {error}</message>
   <message key="err.not_mod">это не проект Barotrauma MOD: filelist.xml не найден в {path} или его родительских каталогах</message>

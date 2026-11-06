@@ -263,6 +263,8 @@ def main(argv: list[str] | None = None) -> int:
             print(t("init.config_updated", name=result.config_path.name))
         else:
             print(t("init.config_exists", name=result.config_path.name))
+        if result.submarines:
+            print(t("init.registered", count=len(result.submarines)))
         if result.git_repository_path:
             print(t("status.git_repo", path=result.git_repository_path))
         return 0
