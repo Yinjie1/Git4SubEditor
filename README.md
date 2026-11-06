@@ -123,6 +123,19 @@ git4subeditor pack "test.xml"
 
 ## 命令
 
+### init
+
+在当前工作目录创建或更新 `.gitignore`. 
+
+```bash
+git4subeditor init
+```
+
+- 文件不存在时, 新建文件并写入 `*.sub`, `*.bak`, `*.png`. 
+- 文件已存在时, 检查这三项; 缺少的项会追加到文件末尾, 并用
+  `# ===== Git4SubEditor =====` 标记. 
+- 三项都已忽略时, 不修改文件. 
+
 ### export
 
 把 `.sub` 导出为同名 XML 和预览图. 
@@ -188,6 +201,6 @@ git4subeditor unpack "test.sub" --stdout
   全文件 diff. 首次使用新版本重新导出时, 可能产生一次集合排序 diff. 
 - `preview` 是相对 XML 所在目录的路径. 移动或重命名 XML 时, 请一起移动或重命名
   预览图, 并同步修改 `preview` 属性. 
-- 如果没有 `preview` 属性, `pack` 会按扩展名优先级查找同名图片 (PNG 优先).
-  不要在同一目录保留多个同名不同扩展名的候选图片. 
+- 如果 `preview` 指向的图片不存在, `pack` 会输出警告并省略预览图, 不会搜索
+  其他图片. 
 - 重新打包后建议进入游戏编辑器打开一次, 确认潜艇可以正常加载.

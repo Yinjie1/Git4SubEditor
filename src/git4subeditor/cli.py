@@ -6,6 +6,7 @@ from pathlib import Path
 
 from git4subeditor import __version__
 from git4subeditor.gitformat import export_sub, pack_sub
+from git4subeditor.initialize import IGNORE_PATTERNS, initialize_project
 from git4subeditor.subfile import SubFileError, unpack_sub
 
 
@@ -26,6 +27,11 @@ def build_parser() -> argparse.ArgumentParser:
         dest="command",
         required=True,
         metavar="command",
+    )
+
+    subparsers.add_parser(
+        "init",
+        help="create .gitignore and project configuration for a workspace",
     )
 
     unpack = subparsers.add_parser(
@@ -137,6 +143,31 @@ def main(argv: list[str] | None = None) -> int:
         Process exit code: 0 on success, 1 if any input failed, 2 on bad usage.
     """
     args = build_parser().parse_args(argv)
+
+    if args.command == "init":
+        try:
+            result = initialize_project()
+        except OSError as exc:
+            print(f"error: cannot initialize project: {exc}", file=sys.stderr)
+            return 1
+        if result.gitignore_created:
+            print(
+                f"created {result.gitignore_path.name}; added {', '.join(result.added)}"
+            )
+        elif result.added:
+            print(
+                f"updated {result.gitignore_path.name}; added {', '.join(result.added)}"
+            )
+        else:
+            print(
+                f"{result.gitignore_path.name} already ignores "
+                f"{', '.join(IGNORE_PATTERNS)}"
+            )
+        if result.config_created:
+            print(f"created {result.config_path.name}")
+        else:
+            print(f"{result.config_path.name} already exists")
+        return 0
 
     if args.command == "unpack" and args.stdout and len(args.inputs) > 1:
         print("error: --stdout accepts only one input file", file=sys.stderr)

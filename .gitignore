@@ -1,5 +1,8 @@
 # ===== 本项目 =====
 *.sub
+*.bak
+*.png
+docs/
 *.code-workspace
 filelist.xml
 opencode.jsonc
