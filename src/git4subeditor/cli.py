@@ -11,9 +11,15 @@ from git4subeditor.initialize import (
     InitializeError,
     initialize_project,
 )
-from git4subeditor.l10n import resolve_language, set_language, t
+from git4subeditor.l10n import (
+    SUPPORTED_LANGUAGES,
+    configured_language,
+    resolve_language,
+    set_language,
+    t,
+)
 from git4subeditor.subfile import SubFileError, unpack_sub
-from git4subeditor.utils import format_warning, print_banner
+from git4subeditor.utils import format_success, format_warning, print_banner
 
 
 class _ArgumentParser(argparse.ArgumentParser):
@@ -154,6 +160,19 @@ def _confirm_overwrite(path: Path) -> bool:
     return answer.strip().casefold() == "y"
 
 
+def _prompt_language() -> str:
+    """Ask for the project language in Chinese and English."""
+    print("请选择语言 / Please select a language:")
+    print("  cn - 中文")
+    print("  en - English")
+    try:
+        answer: str = input("选择 / Select [cn/en] (default: en): ")
+    except EOFError:
+        return "en"
+    language: str = answer.strip().lower()
+    return language if language in SUPPORTED_LANGUAGES else "en"
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run the command-line interface.
 
@@ -168,8 +187,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "init":
         print_banner(__version__)
+        selected_language: str | None = None
+        if configured_language() is None:
+            selected_language = _prompt_language()
+            set_language(selected_language)
         try:
-            result = initialize_project()
+            result = initialize_project(language=selected_language)
         except InitializeError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1
@@ -179,6 +202,8 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 1
+        if selected_language is not None:
+            print(format_success(t("init.language_set")))
         if not result.current_git_repository:
             if result.git_repository_path:
                 print(

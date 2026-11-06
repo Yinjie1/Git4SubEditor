@@ -48,6 +48,7 @@
   <message key="init.config_created">已创建 {name}</message>
   <message key="init.config_updated">已更新 {name}</message>
   <message key="init.config_exists">{name} 已存在</message>
+  <message key="init.language_set">语言设置为中文</message>
   <message key="err.init">无法初始化项目: {error}</message>
   <message key="err.not_mod">不是一个 Barotrauma MOD 项目: 在 {path} 及其上级目录中找不到 filelist.xml</message>
   <message key="err.invalid_config">项目配置无效 {path}: {error}</message>

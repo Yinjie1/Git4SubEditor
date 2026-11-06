@@ -48,6 +48,7 @@
   <message key="init.config_created">created {name}</message>
   <message key="init.config_updated">updated {name}</message>
   <message key="init.config_exists">{name} already exists</message>
+  <message key="init.language_set">Language set to English</message>
   <message key="err.init">cannot initialize project: {error}</message>
   <message key="err.not_mod">not a Barotrauma MOD project: filelist.xml not found in {path} or its parent directories</message>
   <message key="err.invalid_config">invalid project configuration {path}: {error}</message>

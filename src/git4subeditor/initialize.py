@@ -44,7 +44,10 @@ class InitResult:
     upper_git_repository_path: str | None
 
 
-def initialize_project(directory: Path | None = None) -> InitResult:
+def initialize_project(
+    directory: Path | None = None,
+    language: str | None = None,
+) -> InitResult:
     """Initialize a workspace with .gitignore and project configuration.
 
     A new .gitignore contains the required ignore patterns directly. When an
@@ -58,6 +61,8 @@ def initialize_project(directory: Path | None = None) -> InitResult:
     Args:
         directory: Workspace directory. Defaults to the current working
             directory.
+        language: Language code written to the project configuration. When
+            omitted, an existing valid language is preserved.
 
     Returns:
         Details about the created or updated files.
@@ -83,7 +88,7 @@ def initialize_project(directory: Path | None = None) -> InitResult:
     mod_root_path: str = _relative_path(base.resolve(), mod_root)
     gitignore_path, added, gitignore_created = _update_gitignore(base)
     config_path, config_created, config_updated = _create_project_config(
-        base, project_name, repository_path, mod_root_path
+        base, project_name, repository_path, mod_root_path, language
     )
     return InitResult(
         gitignore_path=gitignore_path,
@@ -172,6 +177,7 @@ def _create_project_config(
     project_name: str,
     repository_path: str,
     mod_root_path: str,
+    language: str | None,
 ) -> tuple[Path, bool, bool]:
     """Create or update the project configuration file."""
     path: Path = base / "git4subeditor.xml"
@@ -181,7 +187,10 @@ def _create_project_config(
     except FileNotFoundError:
         root = ET.Element("git4subeditor")
         _set_config_value(root, "projectName", project_name)
-        _set_config_value(root, "language", DEFAULT_LANGUAGE)
+        selected_language: str = (
+            language if language in SUPPORTED_LANGUAGES else DEFAULT_LANGUAGE
+        )
+        _set_config_value(root, "language", selected_language)
         _set_config_value(root, "gitRepo", repository_path)
         _set_config_value(root, "modRoot", mod_root_path)
         _set_config_value(root, "version", __version__)
@@ -195,12 +204,20 @@ def _create_project_config(
     if legacy is not None:
         root.remove(legacy)
         changed = True
-    language: ET.Element | None = root.find("language")
-    current_language: str = (
-        (language.text or "").strip().lower() if language is not None else ""
-    )
-    if current_language not in SUPPORTED_LANGUAGES:
-        changed |= _set_config_value(root, "language", DEFAULT_LANGUAGE)
+    if language is not None:
+        selected_language = (
+            language if language in SUPPORTED_LANGUAGES else DEFAULT_LANGUAGE
+        )
+        changed |= _set_config_value(root, "language", selected_language)
+    else:
+        language_element: ET.Element | None = root.find("language")
+        current_language: str = (
+            (language_element.text or "").strip().lower()
+            if language_element is not None
+            else ""
+        )
+        if current_language not in SUPPORTED_LANGUAGES:
+            changed |= _set_config_value(root, "language", DEFAULT_LANGUAGE)
     changed |= _set_config_value(root, "gitRepo", repository_path)
     changed |= _set_config_value(root, "modRoot", mod_root_path)
     changed |= _set_config_value(root, "version", __version__)

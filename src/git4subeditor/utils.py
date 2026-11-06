@@ -3,8 +3,10 @@
 import os
 import shutil
 import sys
+from typing import TextIO
 
 _YELLOW = "\033[33m"
+_GREEN = "\033[32m"
 _RESET = "\033[0m"
 
 _BANNER = """\
@@ -37,9 +39,26 @@ def format_warning(message: str) -> str:
         The formatted warning line.
     """
     label: str = "warning"
-    if _stderr_supports_color():
+    if _supports_color(sys.stderr):
         label = f"{_YELLOW}{label}{_RESET}"
     return f"{label}: {message}"
+
+
+def format_success(message: str) -> str:
+    """Format a success message in green.
+
+    The message is colored only when stdout is a terminal and ``NO_COLOR`` is
+    not set.
+
+    Args:
+        message: Success text.
+
+    Returns:
+        The formatted success message.
+    """
+    if _supports_color(sys.stdout):
+        return f"{_GREEN}{message}{_RESET}"
+    return message
 
 
 def build_banner(version: str) -> tuple[str, ...]:
@@ -76,11 +95,11 @@ def print_banner(version: str) -> None:
         pass
 
 
-def _stderr_supports_color() -> bool:
-    """Return whether stderr supports ANSI color output."""
-    if sys.stderr is None or "NO_COLOR" in os.environ:
+def _supports_color(stream: TextIO | None) -> bool:
+    """Return whether a text stream supports ANSI color output."""
+    if stream is None or "NO_COLOR" in os.environ:
         return False
     try:
-        return sys.stderr.isatty()
+        return stream.isatty()
     except AttributeError:
         return False
