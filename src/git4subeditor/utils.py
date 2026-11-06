@@ -10,6 +10,11 @@ _GREEN = "\033[32m"
 _RED = "\033[31m"
 _RESET = "\033[0m"
 
+_LABEL_COLORS: dict[str, str] = {
+    "error": _RED,
+    "warning": _YELLOW,
+}
+
 _BANNER = """\
  ██████╗ ██╗████████╗    ██╗  ██╗
 ██╔════╝ ██║╚══██╔══╝    ██║  ██║
@@ -27,40 +32,21 @@ _BANNER = """\
 """
 
 
-def format_warning(message: str) -> str:
-    """Format a warning with a yellow ``warning`` label.
-
-    The label is colored only when stderr is a terminal and ``NO_COLOR`` is
-    not set. The message body is never colored.
+def format_message(message: str, *, label: str) -> str:
+    """Format a message with a colored label.
 
     Args:
-        message: Warning text without the ``warning:`` prefix.
+        message: Message text without the label prefix.
+        label: Label text, for example ``warning`` or ``error``.
 
     Returns:
-        The formatted warning line.
+        The formatted message line.
     """
-    label: str = "warning"
-    if _supports_color(sys.stderr):
-        label = f"{_YELLOW}{label}{_RESET}"
-    return f"{label}: {message}"
-
-
-def format_error(message: str) -> str:
-    """Format an error with a red ``error`` label.
-
-    The label is colored only when stderr is a terminal and ``NO_COLOR`` is
-    not set. The message body is never colored.
-
-    Args:
-        message: Error text without the ``error:`` prefix.
-
-    Returns:
-        The formatted error line.
-    """
-    label: str = "error"
-    if _supports_color(sys.stderr):
-        label = f"{_RED}{label}{_RESET}"
-    return f"{label}: {message}"
+    color: str | None = _LABEL_COLORS.get(label)
+    label_text: str = label
+    if color is not None:
+        label_text = _colorize(label, color, sys.stderr)
+    return f"{label_text}: {message}"
 
 
 def format_success(message: str) -> str:
@@ -75,9 +61,14 @@ def format_success(message: str) -> str:
     Returns:
         The formatted success message.
     """
-    if _supports_color(sys.stdout):
-        return f"{_GREEN}{message}{_RESET}"
-    return message
+    return _colorize(message, _GREEN, sys.stdout)
+
+
+def _colorize(text: str, color: str, stream: TextIO | None) -> str:
+    """Wrap text in an ANSI color when the stream supports it."""
+    if _supports_color(stream):
+        return f"{color}{text}{_RESET}"
+    return text
 
 
 def build_banner(version: str) -> tuple[str, ...]:

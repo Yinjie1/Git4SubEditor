@@ -25,7 +25,7 @@ from git4subeditor.subfile import (
     decompress_sub,
     read_sub_bytes,
 )
-from git4subeditor.utils import format_warning
+from git4subeditor.utils import format_message
 
 PREVIEW_ATTRIBUTE: str = "previewimage"
 PREVIEW_LINK_ATTRIBUTE: str = "preview"
@@ -294,7 +294,10 @@ def pack_sub(
                 preview = preview_path.read_bytes()
             except FileNotFoundError:
                 print(
-                    format_warning(t("warning.preview_missing", path=preview_path)),
+                    format_message(
+                        t("warning.preview_missing", path=preview_path),
+                        label="warning",
+                    ),
                     file=sys.stderr,
                 )
                 preview = None

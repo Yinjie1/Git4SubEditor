@@ -20,12 +20,7 @@ from git4subeditor.l10n import (
     t,
 )
 from git4subeditor.subfile import SubFileError, unpack_sub
-from git4subeditor.utils import (
-    format_error,
-    format_success,
-    format_warning,
-    print_banner,
-)
+from git4subeditor.utils import format_message, format_success, print_banner
 
 
 class _ArgumentParser(argparse.ArgumentParser):
@@ -49,7 +44,7 @@ class _ArgumentParser(argparse.ArgumentParser):
     def error(self, message: str) -> None:
         """Print a colorized argument error and exit."""
         self.print_usage(sys.stderr)
-        self.exit(2, f"{self.prog}: {format_error(message)}\n")
+        self.exit(2, f"{self.prog}: {format_message(message, label='error')}\n")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -228,11 +223,12 @@ def _registry_preview_override(xml_path: Path) -> bytes | None:
             return preview_path.read_bytes()
         except OSError:
             print(
-                format_warning(
+                format_message(
                     t(
                         "warning.registry_preview_failed",
                         name=entry.get("name") or entry_sub.stem,
-                    )
+                    ),
+                    label="warning",
                 ),
                 file=sys.stderr,
             )
@@ -262,11 +258,11 @@ def main(argv: list[str] | None = None) -> int:
         try:
             result = initialize_project(language=selected_language)
         except InitializeError as exc:
-            print(format_error(str(exc)), file=sys.stderr)
+            print(format_message(str(exc), label="error"), file=sys.stderr)
             return 1
         except OSError as exc:
             print(
-                format_error(t("err.init", error=exc)),
+                format_message(t("err.init", error=exc), label="error"),
                 file=sys.stderr,
             )
             return 1
@@ -275,26 +271,28 @@ def main(argv: list[str] | None = None) -> int:
         if not result.current_git_repository:
             if result.git_repository_path:
                 print(
-                    format_warning(
+                    format_message(
                         t(
                             "warning.current_not_repo",
                             path=result.git_repository_path,
-                        )
+                        ),
+                        label="warning",
                     ),
                     file=sys.stderr,
                 )
             else:
                 print(
-                    format_warning(t("warning.no_repo")),
+                    format_message(t("warning.no_repo"), label="warning"),
                     file=sys.stderr,
                 )
         if result.upper_git_repository_path is not None:
             print(
-                format_warning(
+                format_message(
                     t(
                         "warning.upper_repo",
                         path=result.upper_git_repository_path,
-                    )
+                    ),
+                    label="warning",
                 ),
                 file=sys.stderr,
             )
@@ -337,7 +335,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "unpack" and args.stdout and len(args.inputs) > 1:
-        print(format_error(t("err.stdout_single")), file=sys.stderr)
+        print(
+            format_message(t("err.stdout_single"), label="error"),
+            file=sys.stderr,
+        )
         return 2
 
     if (
@@ -346,7 +347,10 @@ def main(argv: list[str] | None = None) -> int:
         and len(args.inputs) > 1
         and not args.output.is_dir()
     ):
-        print(format_error(t("err.output_multi")), file=sys.stderr)
+        print(
+            format_message(t("err.output_multi"), label="error"),
+            file=sys.stderr,
+        )
         return 2
 
     errors: int = 0
@@ -405,7 +409,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 print(t("status.pack", src=src.name, dst=dst))
         except SubFileError as exc:
-            print(format_error(str(exc)), file=sys.stderr)
+            print(format_message(str(exc), label="error"), file=sys.stderr)
             errors += 1
 
     return 1 if errors else 0

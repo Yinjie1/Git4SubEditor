@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from git4subeditor.l10n import t
-from git4subeditor.utils import format_warning
+from git4subeditor.utils import format_message
 
 GZIP_MAGIC: bytes = b"\x1f\x8b"
 
@@ -99,7 +99,7 @@ def decode_xml(data: bytes, encoding: str | None = None) -> str:
             raise SubFileError(t("err.decode_utf16", error=exc)) from exc
 
     print(
-        format_warning(t("warning.decode_replace")),
+        format_message(t("warning.decode_replace"), label="warning"),
         file=sys.stderr,
     )
     return data.decode("utf-8", errors="replace")
