@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from git4subeditor import __version__
@@ -174,6 +175,62 @@ def _prompt_language() -> str:
     return language if language in SUPPORTED_LANGUAGES else "en"
 
 
+def _registry_preview_override(xml_path: Path) -> bytes | None:
+    """Return the registry preview configured for an exported XML file.
+
+    The project configuration is read from the current working directory. A
+    matching ``<submarine>`` entry is found by resolving its ``path`` relative
+    to the configured Git repository root and comparing the ``.xml`` form with
+    the input file. When the entry has a ``preview`` attribute, that image is
+    read and returned. A read failure prints a localized warning and returns
+    None so that packing falls back to the XML ``preview`` link.
+
+    Args:
+        xml_path: Exported XML file passed to ``pack``.
+
+    Returns:
+        Preview image bytes, or None when no registry preview should be used.
+    """
+    config_path: Path = Path.cwd() / "git4subeditor.xml"
+    try:
+        root: ET.Element = ET.parse(config_path).getroot()
+    except (OSError, ET.ParseError):
+        return None
+
+    repository_text: str = (root.findtext("gitRepo") or "").strip()
+    repository_root: Path = (config_path.parent / repository_text).resolve()
+    target: Path = xml_path.resolve()
+
+    for entry in root.findall("./submarines/submarine"):
+        path_text: str = (entry.get("path") or "").strip()
+        if not path_text:
+            continue
+        entry_sub: Path = repository_root / Path(path_text)
+        if entry_sub.with_suffix(".xml") != target:
+            continue
+
+        preview_text: str | None = entry.get("preview")
+        if preview_text is None:
+            return None
+
+        preview_path: Path = repository_root / Path(preview_text)
+        try:
+            return preview_path.read_bytes()
+        except OSError:
+            print(
+                format_warning(
+                    t(
+                        "warning.registry_preview_failed",
+                        name=entry.get("name") or entry_sub.stem,
+                    )
+                ),
+                file=sys.stderr,
+            )
+            return None
+
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run the command-line interface.
 
@@ -329,9 +386,11 @@ def main(argv: list[str] | None = None) -> int:
                         )
                     )
             else:
+                preview_override: bytes | None = _registry_preview_override(src)
                 dst = pack_sub(
                     src,
                     args.output,
+                    preview_override=preview_override,
                     sort_attributes=args.sort_attributes,
                 )
                 print(t("status.pack", src=src.name, dst=dst))

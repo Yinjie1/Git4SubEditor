@@ -22,10 +22,13 @@ class SubmarineEntry:
         name: Registered submarine name, taken from the file stem.
         path: File path relative to the Git repository root, using POSIX
             separators.
+        preview: Preview image path relative to the Git repository root, using
+            POSIX separators. It is the ``.sub`` path with a ``.png`` suffix.
     """
 
     name: str
     path: str
+    preview: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,7 +78,8 @@ def initialize_project(
     and ``version`` fields are updated. The project name is taken from the
     nearest ancestor directory containing ``filelist.xml``. After the Git
     repository is located, every ``.sub`` file below its root is registered
-    in the ``submarines`` section of the configuration.
+    in the ``submarines`` section of the configuration, with a ``preview``
+    attribute pointing to the matching ``.png`` path.
 
     Args:
         directory: Workspace directory. Defaults to the current working
@@ -207,8 +211,9 @@ def _find_submarines(
     """Return submarine files found below a Git repository root.
 
     Files inside ``.git`` directories are ignored. Registered paths are
-    relative to the repository root and always use ``/`` separators.
-    Entries are sorted by path, case-insensitively.
+    relative to the repository root and always use ``/`` separators. Every
+    entry also gets a ``.png`` preview path derived from its ``.sub`` path;
+    the image does not need to exist yet.
 
     Args:
         repository_root: Resolved Git repository root, or None when no
@@ -227,7 +232,14 @@ def _find_submarines(
         relative: Path = path.relative_to(repository_root)
         if ".git" in relative.parts[:-1]:
             continue
-        entries.append(SubmarineEntry(name=path.stem, path=relative.as_posix()))
+        preview: str = relative.with_suffix(".png").as_posix()
+        entries.append(
+            SubmarineEntry(
+                name=path.stem,
+                path=relative.as_posix(),
+                preview=preview,
+            )
+        )
     entries.sort(key=lambda entry: entry.path.casefold())
     return tuple(entries)
 
@@ -296,7 +308,9 @@ def _sync_submarines(
     """Replace the submarine registry and return whether it changed.
 
     Stale entries are dropped, so the registry always mirrors the current
-    scan results.
+    scan results. Existing ``preview`` attributes are overwritten with the
+    derived ``.png`` path, so a manually removed attribute is restored by the
+    next initialization.
 
     Args:
         root: Root element of the project configuration.
@@ -306,13 +320,19 @@ def _sync_submarines(
         Whether the configuration changed.
     """
     element: ET.Element | None = root.find("submarines")
-    existing: list[tuple[str, str]] = []
+    existing: list[tuple[str, str, str]] = []
     if element is not None:
         existing = [
-            (child.get("name", ""), child.get("path", ""))
+            (
+                child.get("name", ""),
+                child.get("path", ""),
+                child.get("preview", ""),
+            )
             for child in element.findall("submarine")
         ]
-    expected: list[tuple[str, str]] = [(entry.name, entry.path) for entry in submarines]
+    expected: list[tuple[str, str, str]] = [
+        (entry.name, entry.path, entry.preview) for entry in submarines
+    ]
     if element is not None and len(element) == len(expected) and existing == expected:
         return False
 
@@ -325,7 +345,11 @@ def _sync_submarines(
         ET.SubElement(
             element,
             "submarine",
-            {"name": entry.name, "path": entry.path},
+            {
+                "name": entry.name,
+                "path": entry.path,
+                "preview": entry.preview,
+            },
         )
     return True
 

@@ -40,6 +40,7 @@
   <message key="warning.no_repo">在模组根目录范围内未找到 Git 仓库; 请运行 'git init' 初始化</message>
   <message key="warning.upper_repo">本项目还存在上级 Git 仓库: {path}</message>
   <message key="warning.preview_missing">找不到预览图: {path}; 预览将留空</message>
+  <message key="warning.registry_preview_failed">潜艇{name}预览图读取失败, 按照默认方式读取</message>
   <message key="warning.decode_replace">输入不是有效的 UTF-8/UTF-16, 将使用替换字符按 UTF-8 解码</message>
 
   <message key="init.created_gitignore">已创建 {name}; 添加 {patterns}</message>
