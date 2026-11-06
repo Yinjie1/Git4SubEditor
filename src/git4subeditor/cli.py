@@ -20,7 +20,12 @@ from git4subeditor.l10n import (
     t,
 )
 from git4subeditor.subfile import SubFileError, unpack_sub
-from git4subeditor.utils import format_success, format_warning, print_banner
+from git4subeditor.utils import (
+    format_error,
+    format_success,
+    format_warning,
+    print_banner,
+)
 
 
 class _ArgumentParser(argparse.ArgumentParser):
@@ -40,6 +45,11 @@ class _ArgumentParser(argparse.ArgumentParser):
     def format_help(self) -> str:
         """Return help text with a localized usage prefix."""
         return super().format_help().replace("usage: ", t("help.usage"), 1)
+
+    def error(self, message: str) -> None:
+        """Print a colorized argument error and exit."""
+        self.print_usage(sys.stderr)
+        self.exit(2, f"{self.prog}: {format_error(message)}\n")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -252,11 +262,11 @@ def main(argv: list[str] | None = None) -> int:
         try:
             result = initialize_project(language=selected_language)
         except InitializeError as exc:
-            print(f"error: {exc}", file=sys.stderr)
+            print(format_error(str(exc)), file=sys.stderr)
             return 1
         except OSError as exc:
             print(
-                f"error: {t('err.init', error=exc)}",
+                format_error(t("err.init", error=exc)),
                 file=sys.stderr,
             )
             return 1
@@ -327,7 +337,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "unpack" and args.stdout and len(args.inputs) > 1:
-        print(f"error: {t('err.stdout_single')}", file=sys.stderr)
+        print(format_error(t("err.stdout_single")), file=sys.stderr)
         return 2
 
     if (
@@ -336,7 +346,7 @@ def main(argv: list[str] | None = None) -> int:
         and len(args.inputs) > 1
         and not args.output.is_dir()
     ):
-        print(f"error: {t('err.output_multi')}", file=sys.stderr)
+        print(format_error(t("err.output_multi")), file=sys.stderr)
         return 2
 
     errors: int = 0
@@ -395,7 +405,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 print(t("status.pack", src=src.name, dst=dst))
         except SubFileError as exc:
-            print(f"error: {exc}", file=sys.stderr)
+            print(format_error(str(exc)), file=sys.stderr)
             errors += 1
 
     return 1 if errors else 0

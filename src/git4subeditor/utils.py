@@ -7,6 +7,7 @@ from typing import TextIO
 
 _YELLOW = "\033[33m"
 _GREEN = "\033[32m"
+_RED = "\033[31m"
 _RESET = "\033[0m"
 
 _BANNER = """\
@@ -41,6 +42,24 @@ def format_warning(message: str) -> str:
     label: str = "warning"
     if _supports_color(sys.stderr):
         label = f"{_YELLOW}{label}{_RESET}"
+    return f"{label}: {message}"
+
+
+def format_error(message: str) -> str:
+    """Format an error with a red ``error`` label.
+
+    The label is colored only when stderr is a terminal and ``NO_COLOR`` is
+    not set. The message body is never colored.
+
+    Args:
+        message: Error text without the ``error:`` prefix.
+
+    Returns:
+        The formatted error line.
+    """
+    label: str = "error"
+    if _supports_color(sys.stderr):
+        label = f"{_RED}{label}{_RESET}"
     return f"{label}: {message}"
 
 
