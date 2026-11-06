@@ -157,10 +157,23 @@ def main(argv: list[str] | None = None) -> int:
         except OSError as exc:
             print(f"error: cannot initialize project: {exc}", file=sys.stderr)
             return 1
-        if not result.git_repository_found:
+        if not result.current_git_repository:
+            if result.git_repository_path:
+                print(
+                    "warning: current directory is not a Git repository; "
+                    f"using {result.git_repository_path}",
+                    file=sys.stderr,
+                )
+            else:
+                print(
+                    "warning: no Git repository found up to the MOD root; "
+                    "run 'git init' to initialize one",
+                    file=sys.stderr,
+                )
+        if result.upper_git_repository_path is not None:
             print(
-                f"warning: no Git repository found in {Path.cwd()}; "
-                "run 'git init' to initialize one",
+                "warning: this project also has an upper-level Git "
+                f"repository: {result.upper_git_repository_path}",
                 file=sys.stderr,
             )
         if result.gitignore_created:
@@ -182,6 +195,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"updated {result.config_path.name}")
         else:
             print(f"{result.config_path.name} already exists")
+        if result.git_repository_path:
+            print(f"repository: {result.git_repository_path}")
         return 0
 
     if args.command == "unpack" and args.stdout and len(args.inputs) > 1:

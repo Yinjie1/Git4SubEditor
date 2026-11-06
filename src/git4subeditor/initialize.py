@@ -1,6 +1,5 @@
 """Initialize project files for a Barotrauma submarine workspace."""
 
-import subprocess
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,8 +21,13 @@ class InitResult:
         added: Ignore patterns added to .gitignore by this call.
         gitignore_created: Whether the .gitignore file was created.
         config_created: Whether the project configuration file was created.
-        config_updated: Whether deprecated configuration fields were removed.
-        git_repository_found: Whether the workspace is inside a Git repository.
+        config_updated: Whether the git repository path was written or changed.
+        git_repository_path: Repository path relative to the workspace, or an
+            empty string when no repository was found.
+        current_git_repository: Whether the workspace itself is a repository
+            root.
+        upper_git_repository_path: Path to an upper-level repository relative
+            to the workspace, or None when no upper-level repository exists.
     """
 
     gitignore_path: Path
@@ -32,7 +36,9 @@ class InitResult:
     gitignore_created: bool
     config_created: bool
     config_updated: bool
-    git_repository_found: bool
+    git_repository_path: str
+    current_git_repository: bool
+    upper_git_repository_path: str | None
 
 
 def initialize_project(directory: Path | None = None) -> InitResult:
@@ -42,10 +48,9 @@ def initialize_project(directory: Path | None = None) -> InitResult:
     existing file is missing patterns, they are appended in a marked block.
     Existing content is never rewritten.
 
-    The project configuration is only created when it does not already exist.
-    Existing user preferences are preserved, but the deprecated
-    ``gitRepository`` field is removed. The project name is taken from the
-    nearest ancestor directory containing ``filelist.xml``.
+    Existing user preferences are preserved. The ``gitRepository`` field is
+    updated to the detected repository path. The project name is taken from
+    the nearest ancestor directory containing ``filelist.xml``.
 
     Args:
         directory: Workspace directory. Defaults to the current working
@@ -68,11 +73,13 @@ def initialize_project(directory: Path | None = None) -> InitResult:
     """
     base: Path = directory if directory is not None else Path.cwd()
     mod_root: Path = _find_mod_root(base)
-    git_repository_found: bool = _has_git_repository(base)
+    repository_path, current_repository, upper_repository = _find_git_repository(
+        base, mod_root
+    )
     project_name: str = mod_root.name or str(mod_root)
     gitignore_path, added, gitignore_created = _update_gitignore(base)
     config_path, config_created, config_updated = _create_project_config(
-        base, project_name
+        base, project_name, repository_path
     )
     return InitResult(
         gitignore_path=gitignore_path,
@@ -81,7 +88,9 @@ def initialize_project(directory: Path | None = None) -> InitResult:
         gitignore_created=gitignore_created,
         config_created=config_created,
         config_updated=config_updated,
-        git_repository_found=git_repository_found,
+        git_repository_path=repository_path,
+        current_git_repository=current_repository,
+        upper_git_repository_path=upper_repository,
     )
 
 
@@ -129,23 +138,38 @@ def _find_mod_root(base: Path) -> Path:
     )
 
 
-def _has_git_repository(base: Path) -> bool:
-    """Return whether the directory is inside a Git work tree."""
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--is-inside-work-tree"],
-            cwd=base,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-    except OSError:
-        return False
-    return result.returncode == 0 and result.stdout.strip() == "true"
+def _find_git_repository(base: Path, mod_root: Path) -> tuple[str, bool, str | None]:
+    """Find repositories from the workspace up to the mod root."""
+    current: Path = base.resolve()
+    repositories: list[Path] = []
+    for directory in (current, *current.parents):
+        if (directory / ".git").exists():
+            repositories.append(directory)
+        if directory == mod_root:
+            break
+
+    if not repositories:
+        return "", False, None
+
+    if repositories[0] == current:
+        upper: str | None = None
+        if len(repositories) > 1:
+            upper = _relative_path(current, repositories[1])
+        return ".", True, upper
+
+    return _relative_path(current, repositories[0]), False, None
 
 
-def _create_project_config(base: Path, project_name: str) -> tuple[Path, bool, bool]:
-    """Create or migrate the project configuration file."""
+def _relative_path(current: Path, target: Path) -> str:
+    """Return a portable relative path from the workspace to the target."""
+    depth: int = len(current.relative_to(target).parts)
+    return "/".join([".."] * depth) or "."
+
+
+def _create_project_config(
+    base: Path, project_name: str, repository_path: str
+) -> tuple[Path, bool, bool]:
+    """Create or update the project configuration file."""
     path: Path = base / "git4subeditor.xml"
     try:
         parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
@@ -156,18 +180,24 @@ def _create_project_config(base: Path, project_name: str) -> tuple[Path, bool, b
         project_name_element.text = project_name
         language: ET.Element = ET.SubElement(root, "language")
         language.text = ""
+        repository: ET.Element = ET.SubElement(root, "gitRepository")
+        repository.text = repository_path
         _write_project_config(path, root)
         return path, True, False
     except ET.ParseError as exc:
         raise InitializeError(f"invalid project configuration {path}: {exc}") from exc
 
-    deprecated: ET.Element | None = root.find("gitRepository")
-    if deprecated is not None:
-        root.remove(deprecated)
+    changed: bool = False
+    repository: ET.Element | None = root.find("gitRepository")
+    if repository is None:
+        repository = ET.SubElement(root, "gitRepository")
+        changed = True
+    if (repository.text or "") != repository_path:
+        repository.text = repository_path
+        changed = True
+    if changed:
         _write_project_config(path, root)
-        return path, False, True
-
-    return path, False, False
+    return path, False, changed
 
 
 def _write_project_config(path: Path, root: ET.Element) -> None:
