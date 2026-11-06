@@ -161,12 +161,13 @@ def _confirm_overwrite(path: Path) -> bool:
 
 
 def _prompt_language() -> str:
-    """Ask for the project language in Chinese and English."""
-    print("请选择语言 / Please select a language:")
+    """Ask for the project language in Chinese, English, and Russian."""
+    print("请选择语言 / Please select a language / Выберите язык:")
     print("  cn - 中文")
     print("  en - English")
+    print("  ru - Русский")
     try:
-        answer: str = input("选择 / Select [cn/en] (default: en): ")
+        answer: str = input("选择 / Select / Выберите [cn/en/ru] (default: en): ")
     except EOFError:
         return "en"
     language: str = answer.strip().lower()

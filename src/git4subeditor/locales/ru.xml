@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='utf-8'?>
+<locale language="ru">
+  <message key="app.description">Преобразование файлов .sub Barotrauma в XML, удобный для Git, и обратно.</message>
+  <message key="metavar.command">команда</message>
+  <message key="arg.version">показать версию программы и выйти</message>
+  <message key="arg.help">показать эту справку и выйти</message>
+  <message key="help.usage">использование: </message>
+  <message key="help.positionals">позиционные аргументы</message>
+  <message key="help.options">параметры</message>
+
+  <message key="command.init">создать .gitignore и конфигурацию проекта для рабочей папки</message>
+  <message key="command.unpack">извлечь исходный XML из файлов .sub</message>
+  <message key="command.export">экспортировать .sub в канонический XML и изображение предпросмотра</message>
+  <message key="command.pack">упаковать экспортированный XML обратно в .sub</message>
+
+  <message key="arg.inputs.sub">один или несколько файлов .sub</message>
+  <message key="arg.inputs.xml">один или несколько экспортированных XML-файлов</message>
+  <message key="arg.output_dir">каталог вывода; по умолчанию каталог каждого входного файла</message>
+  <message key="arg.encoding">принудительно задать кодировку XML вместо автоопределения UTF-8/UTF-16</message>
+  <message key="arg.stdout">вывести XML в stdout вместо записи в файл</message>
+  <message key="arg.no_validate">пропустить проверку корректности XML</message>
+  <message key="arg.force">перезаписывать существующие файлы без запроса</message>
+  <message key="arg.sort_attributes">сортировать атрибуты XML по алфавиту для стабильных diff</message>
+  <message key="arg.sort_attributes_pack">сортировать атрибуты XML по алфавиту перед упаковкой</message>
+  <message key="arg.output">выходной файл .sub или существующий каталог; по умолчанию каталог XML-файла</message>
+
+  <message key="err.stdout_single">--stdout принимает только один входной файл</message>
+  <message key="err.output_multi">при упаковке нескольких файлов --output должен указывать на существующий каталог</message>
+  <message key="prompt.overwrite">{path} уже существует. Перезаписать? [y/N] </message>
+  <message key="status.skipped">пропущено: {path}</message>
+  <message key="status.export_preview">{src} -> {xml}, предпросмотр: {preview}</message>
+  <message key="status.export_no_preview">{src} -> {xml}, без предпросмотра</message>
+  <message key="status.pack">{src} -> {dst}</message>
+  <message key="status.unpack">{src} -> {dst}  [{kind}, {bytes} байт]</message>
+  <message key="kind.gzip">gzip</message>
+  <message key="kind.plain_xml">обычный XML</message>
+  <message key="status.git_repo">Git repo: {path}</message>
+
+  <message key="warning.current_not_repo">текущий каталог не является Git-репозиторием; используется {path}</message>
+  <message key="warning.no_repo">Git-репозиторий не найден до корня мода; выполните 'git init' для инициализации</message>
+  <message key="warning.upper_repo">у этого проекта также есть родительский Git-репозиторий: {path}</message>
+  <message key="warning.preview_missing">изображение предпросмотра не найдено: {path}; предпросмотр будет пустым</message>
+  <message key="warning.decode_replace">входные данные не являются допустимым UTF-8/UTF-16; декодирование как UTF-8 с символами замены</message>
+
+  <message key="init.created_gitignore">создан {name}; добавлено {patterns}</message>
+  <message key="init.updated_gitignore">обновлён {name}; добавлено {patterns}</message>
+  <message key="init.gitignore_ok">{name} уже игнорирует {patterns}</message>
+  <message key="init.config_created">создан {name}</message>
+  <message key="init.config_updated">обновлён {name}</message>
+  <message key="init.config_exists">{name} уже существует</message>
+  <message key="init.language_set">Язык установлен: русский</message>
+  <message key="err.init">не удалось инициализировать проект: {error}</message>
+  <message key="err.not_mod">это не проект Barotrauma MOD: filelist.xml не найден в {path} или его родительских каталогах</message>
+  <message key="err.invalid_config">недопустимая конфигурация проекта {path}: {error}</message>
+  <message key="err.invalid_xml">недопустимый XML: {error}</message>
+  <message key="err.invalid_base64">previewimage не является допустимым base64: {error}</message>
+  <message key="err.read_file">не удалось прочитать файл {path}: {error}</message>
+  <message key="err.pack_sub_input">{path} похож на файл .sub; сначала экспортируйте его в XML</message>
+  <message key="err.read_preview">не удалось прочитать изображение предпросмотра {path}: {error}</message>
+  <message key="err.empty_preview">изображение предпросмотра пусто: {path}</message>
+  <message key="err.create_dir">не удалось создать каталог вывода {path}: {error}</message>
+  <message key="err.submarine_root">ожидался корневой элемент &lt;Submarine&gt;, найден &lt;{tag}&gt;</message>
+  <message key="err.empty_preview_link">ссылка на предпросмотр пуста</message>
+  <message key="err.not_regular_file">путь вывода не является обычным файлом: {path}</message>
+  <message key="err.backup">не удалось создать резервную копию {path} в {backup}: {error}</message>
+  <message key="err.output_exists">выходной файл уже существует: {path} (используйте --force)</message>
+  <message key="err.write">не удалось записать {path}: {error}</message>
+  <message key="err.gzip_compress">ошибка сжатия gzip: {error}</message>
+  <message key="err.gzip_decompress">ошибка распаковки gzip: {error}</message>
+  <message key="err.decode">не удалось декодировать как {encoding}: {error}</message>
+  <message key="err.decode_utf16">не удалось декодировать как UTF-16: {error}</message>
+  <message key="err.invalid_decompressed_xml">распакованные данные не являются допустимым XML: {error}</message>
+</locale>

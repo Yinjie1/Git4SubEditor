@@ -5,7 +5,7 @@ from importlib import resources
 from pathlib import Path
 
 DEFAULT_LANGUAGE = "en"
-SUPPORTED_LANGUAGES: tuple[str, ...] = ("en", "cn")
+SUPPORTED_LANGUAGES: tuple[str, ...] = ("en", "cn", "ru")
 
 _language: str = DEFAULT_LANGUAGE
 _catalogs: dict[str, dict[str, str]] = {}
