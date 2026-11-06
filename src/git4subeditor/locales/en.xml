@@ -54,6 +54,7 @@
   <message key="err.init">cannot initialize project: {error}</message>
   <message key="err.not_mod">not a Barotrauma MOD project: filelist.xml not found in {path} or its parent directories</message>
   <message key="err.invalid_config">invalid project configuration {path}: {error}</message>
+  <message key="err.not_registered">submarine is not registered in git4subeditor.xml: {path}</message>
   <message key="err.invalid_xml">invalid XML: {error}</message>
   <message key="err.invalid_base64">previewimage is not valid base64: {error}</message>
   <message key="err.read_file">cannot read file {path}: {error}</message>

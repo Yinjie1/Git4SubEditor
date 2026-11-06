@@ -3,6 +3,7 @@
 import argparse
 import sys
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from pathlib import Path
 
 from git4subeditor import __version__
@@ -180,61 +181,116 @@ def _prompt_language() -> str:
     return language if language in SUPPORTED_LANGUAGES else "en"
 
 
-def _registry_preview_override(xml_path: Path) -> bytes | None:
-    """Return the registry preview configured for an exported XML file.
+@dataclass(frozen=True, slots=True)
+class _RegisteredSubmarine:
+    """A submarine entry read from the project configuration.
 
-    The project configuration is read from the current working directory. A
-    matching ``<submarine>`` entry is found by resolving its ``path`` relative
-    to the configured Git repository root and comparing the ``.xml`` form with
-    the input file. When the entry has a ``preview`` attribute, that image is
-    read and returned. A read failure prints a localized warning and returns
-    None so that packing falls back to the XML ``preview`` link.
+    Attributes:
+        name: Registered submarine name.
+        preview_path: Resolved preview image path, or None when no preview is
+            configured.
+    """
 
-    Args:
-        xml_path: Exported XML file passed to ``pack``.
+    name: str
+    preview_path: Path | None
+
+
+def _load_registry() -> dict[Path, _RegisteredSubmarine] | None:
+    """Load submarine entries from the current directory project config.
 
     Returns:
-        Preview image bytes, or None when no registry preview should be used.
+        A mapping from resolved ``.sub`` paths to registry entries, or None
+        when ``git4subeditor.xml`` does not exist.
+
+    Raises:
+        SubFileError: If the configuration cannot be read or parsed.
     """
     config_path: Path = Path.cwd() / "git4subeditor.xml"
     try:
         root: ET.Element = ET.parse(config_path).getroot()
-    except (OSError, ET.ParseError):
+    except FileNotFoundError:
         return None
+    except (OSError, ET.ParseError) as exc:
+        raise SubFileError(
+            t("err.invalid_config", path=config_path, error=exc)
+        ) from exc
 
     repository_text: str = (root.findtext("gitRepo") or "").strip()
     repository_root: Path = (config_path.parent / repository_text).resolve()
-    target: Path = xml_path.resolve()
-
+    registry: dict[Path, _RegisteredSubmarine] = {}
     for entry in root.findall("./submarines/submarine"):
         path_text: str = (entry.get("path") or "").strip()
         if not path_text:
             continue
-        entry_sub: Path = repository_root / Path(path_text)
-        if entry_sub.with_suffix(".xml") != target:
-            continue
+        sub_path: Path = (repository_root / Path(path_text)).resolve()
+        preview_text: str = (entry.get("preview") or "").strip()
+        preview_path: Path | None = (
+            (repository_root / Path(preview_text)).resolve() if preview_text else None
+        )
+        registry[sub_path] = _RegisteredSubmarine(
+            name=entry.get("name") or sub_path.stem,
+            preview_path=preview_path,
+        )
+    return registry
 
-        preview_text: str | None = entry.get("preview")
-        if preview_text is None:
-            return None
 
-        preview_path: Path = repository_root / Path(preview_text)
-        try:
-            return preview_path.read_bytes()
-        except OSError:
-            print(
-                format_message(
-                    t(
-                        "warning.registry_preview_failed",
-                        name=entry.get("name") or entry_sub.stem,
-                    ),
-                    label="warning",
-                ),
-                file=sys.stderr,
-            )
-            return None
+def _require_registered(
+    path: Path,
+    registry: dict[Path, _RegisteredSubmarine] | None,
+) -> _RegisteredSubmarine | None:
+    """Return the registry entry for a submarine or fail when missing.
 
-    return None
+    Args:
+        path: Input ``.sub`` file or exported ``.xml`` file.
+        registry: Registry returned by ``_load_registry``, or None when no
+            project configuration exists.
+
+    Returns:
+        The matching registry entry, or None when no configuration exists.
+
+    Raises:
+        SubFileError: If a configuration exists but the submarine is not
+            registered.
+    """
+    if registry is None:
+        return None
+    target: Path = path.resolve()
+    sub_path: Path = (
+        target.with_suffix(".sub") if target.suffix.lower() == ".xml" else target
+    )
+    try:
+        return registry[sub_path]
+    except KeyError:
+        raise SubFileError(t("err.not_registered", path=path)) from None
+
+
+def _registry_preview_override(
+    entry: _RegisteredSubmarine | None,
+) -> bytes | None:
+    """Return the preview image configured for a registered submarine.
+
+    Args:
+        entry: Registered submarine entry, or None when no configuration
+            exists.
+
+    Returns:
+        Preview image bytes, or None when no registered preview should be
+        used. A read failure prints a localized warning and also returns None
+        so packing falls back to the XML ``preview`` link.
+    """
+    if entry is None or entry.preview_path is None:
+        return None
+    try:
+        return entry.preview_path.read_bytes()
+    except OSError:
+        print(
+            format_message(
+                t("warning.registry_preview_failed", name=entry.name),
+                label="warning",
+            ),
+            file=sys.stderr,
+        )
+        return None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -353,6 +409,14 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
+    registry: dict[Path, _RegisteredSubmarine] | None = None
+    if args.command in {"export", "pack"}:
+        try:
+            registry = _load_registry()
+        except SubFileError as exc:
+            print(format_message(str(exc), label="error"), file=sys.stderr)
+            return 1
+
     errors: int = 0
     for src in args.inputs:
         try:
@@ -366,6 +430,7 @@ def main(argv: list[str] | None = None) -> int:
                     validate=not args.no_validate,
                 )
             elif args.command == "export":
+                _require_registered(src, registry)
                 force: bool = args.force
                 target_dir: Path = (
                     args.output_dir if args.output_dir is not None else src.parent
@@ -400,7 +465,8 @@ def main(argv: list[str] | None = None) -> int:
                         )
                     )
             else:
-                preview_override: bytes | None = _registry_preview_override(src)
+                entry: _RegisteredSubmarine | None = _require_registered(src, registry)
+                preview_override: bytes | None = _registry_preview_override(entry)
                 dst = pack_sub(
                     src,
                     args.output,

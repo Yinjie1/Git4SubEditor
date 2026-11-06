@@ -54,6 +54,7 @@
   <message key="err.init">не удалось инициализировать проект: {error}</message>
   <message key="err.not_mod">это не проект Barotrauma MOD: filelist.xml не найден в {path} или его родительских каталогах</message>
   <message key="err.invalid_config">недопустимая конфигурация проекта {path}: {error}</message>
+  <message key="err.not_registered">подводная лодка не зарегистрирована в git4subeditor.xml: {path}</message>
   <message key="err.invalid_xml">недопустимый XML: {error}</message>
   <message key="err.invalid_base64">previewimage не является допустимым base64: {error}</message>
   <message key="err.read_file">не удалось прочитать файл {path}: {error}</message>

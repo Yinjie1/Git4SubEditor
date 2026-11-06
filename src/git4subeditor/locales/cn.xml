@@ -54,6 +54,7 @@
   <message key="err.init">无法初始化项目: {error}</message>
   <message key="err.not_mod">不是一个 Barotrauma MOD 项目: 在 {path} 及其上级目录中找不到 filelist.xml</message>
   <message key="err.invalid_config">项目配置无效 {path}: {error}</message>
+  <message key="err.not_registered">潜艇未在 git4subeditor.xml 中注册: {path}</message>
   <message key="err.invalid_xml">XML 无效: {error}</message>
   <message key="err.invalid_base64">previewimage 不是有效的 base64: {error}</message>
   <message key="err.read_file">无法读取文件 {path}: {error}</message>
