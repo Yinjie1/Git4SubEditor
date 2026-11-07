@@ -8,7 +8,7 @@
   <message key="help.positionals">позиционные аргументы</message>
   <message key="help.options">параметры</message>
   <message key="repl.commands">Команды</message>
-  <message key="repl.command.init">инициализировать рабочую папку</message>
+  <message key="repl.command.init">инициализировать/обновить рабочую папку</message>
   <message key="repl.command.export">экспортировать .sub в XML</message>
   <message key="repl.command.pack">упаковать XML в .sub</message>
   <message key="repl.command.unpack">извлечь XML из .sub</message>
@@ -21,7 +21,7 @@
   <message key="repl.workspace">Проект: {project} | Git repo: {git_repo} | Корень мода: {mod_root}</message>
   <message key="repl.cwd">CWD: {path}</message>
 
-  <message key="command.init">создать .gitignore и конфигурацию проекта для рабочей папки</message>
+  <message key="command.init">инициализировать/обновить рабочую папку</message>
   <message key="command.unpack">извлечь исходный XML из файлов .sub</message>
   <message key="command.export">экспортировать .sub в канонический XML и изображение предпросмотра</message>
   <message key="command.pack">упаковать экспортированный XML обратно в .sub</message>
@@ -42,6 +42,7 @@
   <message key="err.stdout_single">--stdout принимает только один входной файл</message>
   <message key="err.output_multi">при упаковке нескольких файлов --output должен указывать на существующий каталог</message>
   <message key="prompt.overwrite">{path} уже существует. Перезаписать? [y/N] </message>
+  <message key="prompt.submarines">Обновить эти записи подводных лодок? [y/N] </message>
   <message key="status.skipped">пропущено: {path}</message>
   <message key="status.export_preview">{src} -> {xml}, предпросмотр: {preview}</message>
   <message key="status.export_no_preview">{src} -> {xml}, без предпросмотра</message>
@@ -65,7 +66,10 @@
   <message key="init.config_created">создан {name}</message>
   <message key="init.config_updated">обновлён {name}</message>
   <message key="init.config_exists">{name} уже существует</message>
+  <message key="init.registered_header">Зарегистрированные подводные лодки:</message>
+  <message key="init.pending_header">Подводные лодки для добавления или обновления:</message>
   <message key="init.registered">зарегистрировано {count} файлов подводных лодок</message>
+  <message key="init.submarines_skipped">реестр подводных лодок не обновлён</message>
   <message key="init.language_set">Язык установлен: русский</message>
   <message key="err.init">не удалось инициализировать проект: {error}</message>
   <message key="err.not_mod">это не проект Barotrauma MOD: filelist.xml не найден в {path} или его родительских каталогах</message>

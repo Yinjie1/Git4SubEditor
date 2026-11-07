@@ -20,6 +20,7 @@ from git4subeditor.utils import format_message, print_banner
 from git4subeditor.workspace import (
     IGNORE_PATTERNS,
     InitializeError,
+    SubmarineEntry,
     initialize_project,
     load_workspace_info,
     print_submarine_paths,
@@ -171,6 +172,26 @@ def _confirm_overwrite(path: Path) -> bool:
     try:
         answer = input(t("prompt.overwrite", path=path))
     except EOFError:
+        return False
+    return answer.strip().casefold() == "y"
+
+
+def _confirm_submarines(
+    registered: tuple[SubmarineEntry, ...],
+    pending: tuple[SubmarineEntry, ...],
+) -> bool:
+    """Show pending submarine registry changes and ask to apply them."""
+    if registered:
+        print(t("init.registered_header"))
+        for entry in registered:
+            print(f"  {entry.name}: {entry.path}")
+    print(t("init.pending_header"))
+    for entry in pending:
+        print(f"  {entry.name}: {entry.path}")
+    try:
+        answer: str = input(t("prompt.submarines"))
+    except EOFError:
+        print()
         return False
     return answer.strip().casefold() == "y"
 
@@ -333,7 +354,10 @@ def _run_command(
             selected_language = _prompt_language()
             set_language(selected_language)
         try:
-            result = initialize_project(language=selected_language)
+            result = initialize_project(
+                language=selected_language,
+                confirm_submarines=_confirm_submarines,
+            )
         except InitializeError as exc:
             print(format_message(str(exc), label="error"), file=sys.stderr)
             return 1
@@ -418,8 +442,10 @@ def _run_command(
             print(t("init.config_updated", name=result.config_path.name))
         else:
             print(t("init.config_exists", name=result.config_path.name))
-        if result.submarines:
+        if result.submarines_updated and result.submarines:
             print(t("init.registered", count=len(result.submarines)))
+        elif not result.submarines_updated:
+            print(t("init.submarines_skipped"))
         if result.git_repository_path:
             print(t("status.git_repo", path=result.git_repository_path))
         return 0

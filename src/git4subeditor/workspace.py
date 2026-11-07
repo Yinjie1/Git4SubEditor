@@ -2,6 +2,7 @@
 
 import hashlib
 import xml.etree.ElementTree as ET
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -48,6 +49,9 @@ class WorkspaceInfo:
 
 
 type _TreeEntry = tuple[list[str], SubmarineEntry, str | None]
+type SubmarineConfirm = Callable[
+    [tuple[SubmarineEntry, ...], tuple[SubmarineEntry, ...]], bool
+]
 
 
 def read_config_root() -> ET.Element | None:
@@ -292,6 +296,7 @@ class InitResult:
             to the workspace, or None when no upper-level repository exists.
         submarines: Submarine files found below the Git repository root, with
             paths relative to that root.
+        submarines_updated: Whether the submarine registry was updated.
         submarine_path_changes: Registered submarines whose paths were updated
             because a file with the same name was found at a different path.
     """
@@ -306,14 +311,16 @@ class InitResult:
     current_git_repository: bool
     upper_git_repository_path: str | None
     submarines: tuple[SubmarineEntry, ...]
+    submarines_updated: bool
     submarine_path_changes: tuple[SubmarinePathChange, ...]
 
 
 def initialize_project(
     directory: Path | None = None,
     language: str | None = None,
+    confirm_submarines: SubmarineConfirm | None = None,
 ) -> InitResult:
-    """Initialize a workspace with .gitignore and project configuration.
+    """Initialize or update a workspace with .gitignore and project configuration.
 
     A new .gitignore contains the required ignore patterns directly. When an
     existing file is missing patterns, they are appended in a marked block.
@@ -332,6 +339,9 @@ def initialize_project(
             directory.
         language: Language code written to the project configuration. When
             omitted, an existing valid language is preserved.
+        confirm_submarines: Optional callback that receives the registered and
+            pending submarine entries. Returning False leaves the registry
+            unchanged. When omitted, pending changes are applied directly.
 
     Returns:
         Details about the created or updated files.
@@ -356,7 +366,6 @@ def initialize_project(
     repository_root: Path | None = (
         (base / repository_path).resolve() if repository_path else None
     )
-    submarines: tuple[SubmarineEntry, ...] = _find_submarines(repository_root)
     project_name: str = mod_root.name or str(mod_root)
     mod_root_path: str = _relative_path(base.resolve(), mod_root)
     gitignore_path, added, gitignore_created = _update_gitignore(base)
@@ -364,14 +373,17 @@ def initialize_project(
         config_path,
         config_created,
         config_updated,
+        submarines_updated,
         submarine_path_changes,
+        submarines,
     ) = _create_project_config(
         base,
         project_name,
         repository_path,
         mod_root_path,
         language,
-        submarines,
+        repository_root,
+        confirm_submarines,
     )
     return InitResult(
         gitignore_path=gitignore_path,
@@ -384,6 +396,7 @@ def initialize_project(
         current_git_repository=current_repository,
         upper_git_repository_path=upper_repository,
         submarines=submarines,
+        submarines_updated=submarines_updated,
         submarine_path_changes=submarine_path_changes,
     )
 
@@ -456,44 +469,93 @@ def _relative_path(current: Path, target: Path) -> str:
     return target.relative_to(current, walk_up=True).as_posix()
 
 
-def _find_submarines(
+def _detect_submarines(
+    root: ET.Element | None,
     repository_root: Path | None,
-) -> tuple[SubmarineEntry, ...]:
-    """Return submarine files found below a Git repository root.
+) -> tuple[tuple[SubmarineEntry, ...], tuple[SubmarineEntry, ...]]:
+    """Return scanned submarine files and pending registry changes.
 
-    Files inside ``.git`` directories are ignored. Registered paths are
-    relative to the repository root and always use ``/`` separators. Every
-    entry also gets a ``.png`` preview path derived from its ``.sub`` path;
-    the image does not need to exist yet. The file's SHA-256 hash is recorded.
+    Files inside ``.git`` directories are ignored. Paths are relative to the
+    repository root and always use ``/`` separators. Every scanned entry gets a
+    derived ``.png`` preview path and its SHA-256 hash.
 
     Args:
+        root: Existing project configuration root, or None when the
+            configuration does not exist yet.
         repository_root: Resolved Git repository root, or None when no
             repository was found.
 
     Returns:
-        The registered submarine entries, possibly empty.
+        All submarine entries found below the repository root, and the subset
+        that is new or whose path or hash differs from the configuration.
     """
-    if repository_root is None:
-        return ()
-
     entries: list[SubmarineEntry] = []
-    for path in repository_root.rglob("*"):
-        if path.suffix.lower() != ".sub" or not path.is_file():
-            continue
-        relative: Path = path.relative_to(repository_root)
-        if ".git" in relative.parts[:-1]:
-            continue
-        preview: str = relative.with_suffix(".png").as_posix()
-        entries.append(
-            SubmarineEntry(
-                name=path.stem,
-                path=relative.as_posix(),
-                preview=preview,
-                hash=_file_hash(path),
+    if repository_root is not None:
+        for path in repository_root.rglob("*"):
+            if path.suffix.lower() != ".sub" or not path.is_file():
+                continue
+            relative: Path = path.relative_to(repository_root)
+            if ".git" in relative.parts[:-1]:
+                continue
+            preview: str = relative.with_suffix(".png").as_posix()
+            entries.append(
+                SubmarineEntry(
+                    name=path.stem,
+                    path=relative.as_posix(),
+                    preview=preview,
+                    hash=_file_hash(path),
+                )
             )
-        )
-    entries.sort(key=lambda entry: entry.path.casefold())
-    return tuple(entries)
+        entries.sort(key=lambda entry: entry.path.casefold())
+
+    registered: dict[str, SubmarineEntry] = {}
+    if root is not None:
+        for child in root.findall("./submarines/submarine"):
+            name: str = (child.get("name") or "").strip()
+            path_text: str = (child.get("path") or "").strip()
+            if not name or not path_text:
+                continue
+            registered[name] = SubmarineEntry(
+                name=name,
+                path=path_text,
+                preview=(child.get("preview") or "").strip() or None,
+                hash=(child.get("hash") or "").strip() or None,
+            )
+
+    pending: list[SubmarineEntry] = []
+    for entry in entries:
+        old: SubmarineEntry | None = registered.get(entry.name)
+        if old is None or old.path != entry.path or old.hash != entry.hash:
+            pending.append(entry)
+
+    return tuple(entries), tuple(pending)
+
+
+def _confirm_submarine_update(
+    confirm: SubmarineConfirm | None,
+    root: ET.Element | None,
+    pending: tuple[SubmarineEntry, ...],
+) -> bool:
+    """Return whether pending registry changes should be applied."""
+    if confirm is None or not pending:
+        return True
+
+    registered: list[SubmarineEntry] = []
+    if root is not None:
+        for child in root.findall("./submarines/submarine"):
+            name: str = (child.get("name") or "").strip()
+            path: str = (child.get("path") or "").strip()
+            if not name or not path:
+                continue
+            registered.append(
+                SubmarineEntry(
+                    name=name,
+                    path=path,
+                    preview=(child.get("preview") or "").strip() or None,
+                    hash=(child.get("hash") or "").strip() or None,
+                )
+            )
+    return confirm(tuple(registered), pending)
 
 
 def _create_project_config(
@@ -502,8 +564,16 @@ def _create_project_config(
     repository_path: str,
     mod_root_path: str,
     language: str | None,
-    submarines: tuple[SubmarineEntry, ...],
-) -> tuple[Path, bool, bool, tuple[SubmarinePathChange, ...]]:
+    repository_root: Path | None,
+    confirm_submarines: SubmarineConfirm | None,
+) -> tuple[
+    Path,
+    bool,
+    bool,
+    bool,
+    tuple[SubmarinePathChange, ...],
+    tuple[SubmarineEntry, ...],
+]:
     """Create or update the project configuration file."""
     path: Path = base / "git4subeditor.xml"
     try:
@@ -519,12 +589,26 @@ def _create_project_config(
         _set_config_value(root, "gitRepo", repository_path)
         _set_config_value(root, "modRoot", mod_root_path)
         _set_config_value(root, "version", __version__)
-        _, path_changes = _sync_submarines(root, submarines)
+        submarines, pending = _detect_submarines(None, repository_root)
+        update_submarines: bool = _confirm_submarine_update(
+            confirm_submarines, root, pending
+        )
+        if update_submarines:
+            _, path_changes = _sync_submarines(root, submarines)
+        else:
+            ET.SubElement(root, "submarines")
+            path_changes = ()
         _write_project_config(path, root)
-        return path, True, False, path_changes
+        return path, True, False, update_submarines, path_changes, submarines
     except ET.ParseError as exc:
         raise InitializeError(t("err.invalid_config", path=path, error=exc)) from exc
 
+    submarines, pending = _detect_submarines(root, repository_root)
+    update_submarines = _confirm_submarine_update(
+        confirm_submarines,
+        root,
+        pending,
+    )
     changed: bool = False
     legacy: ET.Element | None = root.find("gitRepository")
     if legacy is not None:
@@ -547,11 +631,13 @@ def _create_project_config(
     changed |= _set_config_value(root, "gitRepo", repository_path)
     changed |= _set_config_value(root, "modRoot", mod_root_path)
     changed |= _set_config_value(root, "version", __version__)
-    registry_changed, path_changes = _sync_submarines(root, submarines)
-    changed |= registry_changed
+    path_changes: tuple[SubmarinePathChange, ...] = ()
+    if update_submarines:
+        registry_changed, path_changes = _sync_submarines(root, submarines)
+        changed |= registry_changed
     if changed:
         _write_project_config(path, root)
-    return path, False, changed, path_changes
+    return path, False, changed, update_submarines, path_changes, submarines
 
 
 def _sync_submarines(

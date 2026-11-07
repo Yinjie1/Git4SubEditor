@@ -8,7 +8,7 @@
   <message key="help.positionals">positional arguments</message>
   <message key="help.options">options</message>
   <message key="repl.commands">Commands</message>
-  <message key="repl.command.init">initialize workspace</message>
+  <message key="repl.command.init">initialize/update workspace</message>
   <message key="repl.command.export">export .sub to XML</message>
   <message key="repl.command.pack">pack XML into .sub</message>
   <message key="repl.command.unpack">extract XML from .sub</message>
@@ -21,7 +21,7 @@
   <message key="repl.workspace">Project: {project} | Git repo: {git_repo} | Mod root: {mod_root}</message>
   <message key="repl.cwd">CWD: {path}</message>
 
-  <message key="command.init">create .gitignore and project configuration for a workspace</message>
+  <message key="command.init">initialize/update a workspace</message>
   <message key="command.unpack">extract raw XML from .sub files</message>
   <message key="command.export">export a .sub file as canonical XML plus a preview image</message>
   <message key="command.pack">pack an exported XML file back into a .sub file</message>
@@ -42,6 +42,7 @@
   <message key="err.stdout_single">--stdout accepts only one input file</message>
   <message key="err.output_multi">--output must be an existing directory when packing multiple files</message>
   <message key="prompt.overwrite">{path} already exists. Overwrite? [y/N] </message>
+  <message key="prompt.submarines">Update these submarine entries? [y/N] </message>
   <message key="status.skipped">skipped: {path}</message>
   <message key="status.export_preview">{src} -> {xml}, preview: {preview}</message>
   <message key="status.export_no_preview">{src} -> {xml}, no preview</message>
@@ -65,7 +66,10 @@
   <message key="init.config_created">created {name}</message>
   <message key="init.config_updated">updated {name}</message>
   <message key="init.config_exists">{name} already exists</message>
+  <message key="init.registered_header">Registered submarines:</message>
+  <message key="init.pending_header">Submarines to add or update:</message>
   <message key="init.registered">registered {count} submarine files</message>
+  <message key="init.submarines_skipped">submarine registry not updated</message>
   <message key="init.language_set">Language set to English</message>
   <message key="err.init">cannot initialize project: {error}</message>
   <message key="err.not_mod">not a Barotrauma MOD project: filelist.xml not found in {path} or its parent directories</message>
