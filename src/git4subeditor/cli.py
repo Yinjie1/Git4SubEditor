@@ -215,6 +215,9 @@ class _WorkspaceInfo:
     submarines: tuple[_SubmarineEntry, ...]
 
 
+type _TreeEntry = tuple[list[str], _SubmarineEntry]
+
+
 def _read_config_root() -> ET.Element | None:
     """Read the current directory project configuration root.
 
@@ -303,6 +306,77 @@ def _load_workspace_info() -> _WorkspaceInfo | None:
     )
 
 
+def _split_path_text(path_text: str) -> list[str]:
+    """Split a configured path into components."""
+    parts: tuple[str, ...] = Path(path_text).parts
+    if not parts:
+        return ["."]
+    if path_text.startswith(("./", ".\\")):
+        return [".", *parts]
+    return list(parts)
+
+
+def _path_basename(path_text: str) -> str:
+    """Return the final component of a configured path."""
+    return Path(path_text).name
+
+
+def _print_tree_children(entries: list[_TreeEntry], prefix: str) -> None:
+    """Print tree entries below one directory level."""
+    files: list[tuple[list[str], _SubmarineEntry]] = [
+        (directories, submarine)
+        for directories, submarine in entries
+        if not directories
+    ]
+    directory_names: list[str] = []
+    for directories, _ in entries:
+        if directories and directories[0] not in directory_names:
+            directory_names.append(directories[0])
+
+    total: int = len(files) + len(directory_names)
+    index: int = 0
+    for _, submarine in files:
+        index += 1
+        connector: str = "└── " if index == total else "├── "
+        filename: str = _path_basename(submarine.path)
+        print(f"{prefix}{connector}{submarine.name}: {filename}")
+
+    for directory_name in directory_names:
+        index += 1
+        connector = "└── " if index == total else "├── "
+        print(f"{prefix}{connector}{directory_name}")
+        child_prefix: str = prefix + ("    " if index == total else "│   ")
+        children: list[_TreeEntry] = [
+            (directories[1:], submarine)
+            for directories, submarine in entries
+            if directories and directories[0] == directory_name
+        ]
+        _print_tree_children(children, child_prefix)
+
+
+def _print_submarine_tree(info: _WorkspaceInfo) -> None:
+    """Print registered submarines as a directory tree."""
+    if not info.submarines:
+        return
+
+    root_label: str = info.git_repo or "."
+    root_directories: list[str] = _split_path_text(root_label)
+    entries: list[_TreeEntry] = []
+    for submarine in info.submarines:
+        parts: list[str] = _split_path_text(submarine.path)
+        if not parts:
+            continue
+        directories: list[str] = parts[:-1]
+        if directories[: len(root_directories)] == root_directories:
+            directories = directories[len(root_directories) :]
+        entries.append((directories, submarine))
+
+    if not entries:
+        return
+    print(root_label)
+    _print_tree_children(entries, "")
+
+
 def _print_workspace_info(info: _WorkspaceInfo | None) -> None:
     """Print the interactive workspace summary.
 
@@ -322,8 +396,7 @@ def _print_workspace_info(info: _WorkspaceInfo | None) -> None:
             mod_root=info.mod_root,
         )
     )
-    for submarine in info.submarines:
-        print(f"  {submarine.name}: {submarine.path}")
+    _print_submarine_tree(info)
 
 
 def _workspace_prompt(info: _WorkspaceInfo | None) -> str:
