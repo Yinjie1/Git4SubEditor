@@ -10,6 +10,7 @@ _COLORS: dict[str, str] = {
     "green": "\033[32m",
     "red": "\033[31m",
     "blue": "\033[34m",
+    "light_blue": "\033[94m",
 }
 _RESET = "\033[0m"
 

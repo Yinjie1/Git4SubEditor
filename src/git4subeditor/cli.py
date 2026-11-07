@@ -336,7 +336,8 @@ def _print_tree_children(entries: list[_TreeEntry], prefix: str) -> None:
     for directory_name in directory_names:
         index += 1
         connector = "└── " if index == total else "├── "
-        print(f"{prefix}{connector}{format_message(directory_name, color='blue')}")
+        directory_text: str = format_message(directory_name, color="light_blue")
+        print(f"{prefix}{connector}{directory_text}")
         child_prefix: str = prefix + ("    " if index == total else "│   ")
         children: list[_TreeEntry] = [
             (directories[1:], submarine)
@@ -365,7 +366,7 @@ def _print_submarine_tree(info: _WorkspaceInfo) -> None:
 
     if not entries:
         return
-    print(format_message(root_label, color="blue"))
+    print(format_message(root_label, color="light_blue"))
     _print_tree_children(entries, "")
 
 
@@ -394,7 +395,7 @@ def _print_workspace_info(info: _WorkspaceInfo | None) -> None:
 
 def _workspace_prompt(info: _WorkspaceInfo | None) -> str:
     """Return the interactive prompt for the current workspace."""
-    prefix: str = format_message("g4s", color="blue")
+    prefix: str = format_message("g4s", color="light_blue")
     if info is None:
         return f"{prefix}> "
     return f"{prefix}:{format_message(info.project_name, color='green')}> "
