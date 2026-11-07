@@ -215,6 +215,20 @@ class _WorkspaceInfo:
 type _TreeEntry = tuple[list[str], _SubmarineEntry]
 
 
+class _SummaryFormatter(argparse.HelpFormatter):
+    """Use the usage color for positional command names."""
+
+    def _format_action_invocation(self, action: argparse.Action) -> str:
+        theme = self._theme
+        head, *options = action.dest.split(" [")
+        parts: list[str] = [f"{theme.summary_action}{head}{theme.reset}"]
+        for option in options:
+            parts.append(
+                f"[{theme.summary_action}{option.removesuffix(']')}{theme.reset}]"
+            )
+        return " ".join(parts)
+
+
 def _print_command_list() -> None:
     """Print the interactive command list in argparse style."""
     commands: tuple[tuple[str, str], ...] = (
@@ -234,7 +248,7 @@ def _print_command_list() -> None:
     parser = argparse.ArgumentParser(
         prog="",
         add_help=False,
-        formatter_class=partial(argparse.HelpFormatter, max_help_position=40),
+        formatter_class=partial(_SummaryFormatter, max_help_position=40),
     )
     formatter = parser._get_formatter()
     formatter.start_section(t("repl.commands"))
