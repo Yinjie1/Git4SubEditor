@@ -480,6 +480,9 @@ def _run_command(
             print(t("init.submarines_skipped"))
         if result.git_repository_path:
             print(t("status.git_repo", path=result.git_repository_path))
+        info = load_workspace_info()
+        if info is not None:
+            print_submarine_paths(info)
         return 0
 
     if args.command == "unpack" and args.stdout and len(args.inputs) > 1:
