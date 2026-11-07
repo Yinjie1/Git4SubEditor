@@ -183,30 +183,19 @@ def _prompt_language() -> str:
 
 
 @dataclass(frozen=True, slots=True)
-class _RegisteredSubmarine:
+class _SubmarineEntry:
     """A submarine entry read from the project configuration.
 
     Attributes:
         name: Registered submarine name.
+        path: Submarine path relative to the Git repository.
         preview_path: Resolved preview image path, or None when no preview is
             configured.
     """
 
     name: str
-    preview_path: Path | None
-
-
-@dataclass(frozen=True, slots=True)
-class _WorkspaceSubmarine:
-    """A submarine entry shown in the interactive workspace summary.
-
-    Attributes:
-        name: Registered submarine name.
-        path: Registered submarine path relative to the Git repository.
-    """
-
-    name: str
     path: str
+    preview_path: Path | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -223,7 +212,7 @@ class _WorkspaceInfo:
     project_name: str
     git_repo: str
     mod_root: str
-    submarines: tuple[_WorkspaceSubmarine, ...]
+    submarines: tuple[_SubmarineEntry, ...]
 
 
 def _read_config_root() -> ET.Element | None:
@@ -247,7 +236,7 @@ def _read_config_root() -> ET.Element | None:
         ) from exc
 
 
-def _load_registry() -> dict[Path, _RegisteredSubmarine] | None:
+def _load_registry() -> dict[Path, _SubmarineEntry] | None:
     """Load submarine entries from the current directory project config.
 
     Returns:
@@ -264,7 +253,7 @@ def _load_registry() -> dict[Path, _RegisteredSubmarine] | None:
 
     repository_text: str = (root.findtext("gitRepo") or "").strip()
     repository_root: Path = (config_path.parent / repository_text).resolve()
-    registry: dict[Path, _RegisteredSubmarine] = {}
+    registry: dict[Path, _SubmarineEntry] = {}
     for entry in root.findall("./submarines/submarine"):
         path_text: str = (entry.get("path") or "").strip()
         if not path_text:
@@ -274,8 +263,9 @@ def _load_registry() -> dict[Path, _RegisteredSubmarine] | None:
         preview_path: Path | None = (
             (repository_root / Path(preview_text)).resolve() if preview_text else None
         )
-        registry[sub_path] = _RegisteredSubmarine(
+        registry[sub_path] = _SubmarineEntry(
             name=entry.get("name") or sub_path.stem,
+            path=path_text,
             preview_path=preview_path,
         )
     return registry
@@ -297,13 +287,13 @@ def _load_workspace_info() -> _WorkspaceInfo | None:
     project_name: str = (root.findtext("projectName") or "").strip()
     git_repo: str = (root.findtext("gitRepo") or "").strip() or "."
     mod_root: str = (root.findtext("modRoot") or "").strip() or "."
-    submarines: list[_WorkspaceSubmarine] = []
+    submarines: list[_SubmarineEntry] = []
     for entry in root.findall("./submarines/submarine"):
         path_text: str = (entry.get("path") or "").strip()
         if not path_text:
             continue
         name_text: str = (entry.get("name") or "").strip() or Path(path_text).stem
-        submarines.append(_WorkspaceSubmarine(name=name_text, path=path_text))
+        submarines.append(_SubmarineEntry(name=name_text, path=path_text))
 
     return _WorkspaceInfo(
         project_name=project_name or Path.cwd().name,
@@ -344,8 +334,8 @@ def _print_workspace_info() -> int:
 
 def _require_registered(
     path: Path,
-    registry: dict[Path, _RegisteredSubmarine] | None,
-) -> _RegisteredSubmarine | None:
+    registry: dict[Path, _SubmarineEntry] | None,
+) -> _SubmarineEntry | None:
     """Return the registry entry for a submarine or fail when missing.
 
     Args:
@@ -373,7 +363,7 @@ def _require_registered(
 
 
 def _registry_preview_override(
-    entry: _RegisteredSubmarine | None,
+    entry: _SubmarineEntry | None,
 ) -> bytes | None:
     """Return the preview image configured for a registered submarine.
 
@@ -533,7 +523,7 @@ def _run_command(
         )
         return 2
 
-    registry: dict[Path, _RegisteredSubmarine] | None = None
+    registry: dict[Path, _SubmarineEntry] | None = None
     if args.command in {"export", "pack"}:
         try:
             registry = _load_registry()
@@ -589,7 +579,7 @@ def _run_command(
                         )
                     )
             else:
-                entry: _RegisteredSubmarine | None = _require_registered(src, registry)
+                entry: _SubmarineEntry | None = _require_registered(src, registry)
                 preview_override: bytes | None = _registry_preview_override(entry)
                 dst = pack_sub(
                     src,
