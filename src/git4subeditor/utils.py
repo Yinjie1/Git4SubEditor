@@ -5,14 +5,17 @@ import shutil
 import sys
 from typing import TextIO
 
-_YELLOW = "\033[33m"
-_GREEN = "\033[32m"
-_RED = "\033[31m"
+_COLORS: dict[str, str] = {
+    "yellow": "\033[33m",
+    "green": "\033[32m",
+    "red": "\033[31m",
+    "blue": "\033[34m",
+}
 _RESET = "\033[0m"
 
 _LABEL_COLORS: dict[str, str] = {
-    "error": _RED,
-    "warning": _YELLOW,
+    "error": "red",
+    "warning": "yellow",
 }
 
 _BANNER = """\
@@ -32,36 +35,38 @@ _BANNER = """\
 """
 
 
-def format_message(message: str, *, label: str) -> str:
-    """Format a message with a colored label.
+def format_message(
+    message: str,
+    *,
+    label: str | None = None,
+    color: str | None = None,
+) -> str:
+    """Format text with an optional colored label.
+
+    When ``label`` is given, the result is ``label: message`` and the label is
+    colored according to ``color`` or the label defaults. Otherwise the whole
+    message is colored with ``color``.
 
     Args:
-        message: Message text without the label prefix.
-        label: Label text, for example ``warning`` or ``error``.
+        message: Message text.
+        label: Optional label placed before the message.
+        color: Optional color name such as ``red``, ``green``, or ``blue``.
 
     Returns:
-        The formatted message line.
+        The formatted text.
     """
-    color: str | None = _LABEL_COLORS.get(label)
+    if label is None:
+        color_code: str | None = _COLORS.get(color) if color else None
+        if color_code is None:
+            return message
+        return _colorize(message, color_code, sys.stdout)
+
+    color_name: str | None = color or _LABEL_COLORS.get(label)
+    color_code = _COLORS.get(color_name) if color_name else None
     label_text: str = label
-    if color is not None:
-        label_text = _colorize(label, color, sys.stderr)
+    if color_code is not None:
+        label_text = _colorize(label, color_code, sys.stderr)
     return f"{label_text}: {message}"
-
-
-def format_success(message: str) -> str:
-    """Format a success message in green.
-
-    The message is colored only when stdout is a terminal and ``NO_COLOR`` is
-    not set.
-
-    Args:
-        message: Success text.
-
-    Returns:
-        The formatted success message.
-    """
-    return _colorize(message, _GREEN, sys.stdout)
 
 
 def _colorize(text: str, color: str, stream: TextIO | None) -> str:

@@ -22,7 +22,7 @@ from git4subeditor.l10n import (
     t,
 )
 from git4subeditor.subfile import SubFileError, unpack_sub
-from git4subeditor.utils import format_message, format_success, print_banner
+from git4subeditor.utils import format_message, print_banner
 
 
 class _ArgumentParser(argparse.ArgumentParser):
@@ -341,7 +341,7 @@ def _print_tree_children(entries: list[_TreeEntry], prefix: str) -> None:
     for directory_name in directory_names:
         index += 1
         connector = "└── " if index == total else "├── "
-        print(f"{prefix}{connector}{directory_name}")
+        print(f"{prefix}{connector}{format_message(directory_name, color='blue')}")
         child_prefix: str = prefix + ("    " if index == total else "│   ")
         children: list[_TreeEntry] = [
             (directories[1:], submarine)
@@ -370,7 +370,7 @@ def _print_submarine_tree(info: _WorkspaceInfo) -> None:
 
     if not entries:
         return
-    print(root_label)
+    print(format_message(root_label, color="blue"))
     _print_tree_children(entries, "")
 
 
@@ -399,9 +399,10 @@ def _print_workspace_info(info: _WorkspaceInfo | None) -> None:
 
 def _workspace_prompt(info: _WorkspaceInfo | None) -> str:
     """Return the interactive prompt for the current workspace."""
+    prefix: str = format_message("g4s", color="blue")
     if info is None:
-        return "g4s> "
-    return f"g4s:{info.project_name}> "
+        return f"{prefix}> "
+    return f"{prefix}:{format_message(info.project_name, color='green')}> "
 
 
 def _require_registered(
@@ -496,7 +497,7 @@ def _run_command(
             )
             return 1
         if selected_language is not None:
-            print(format_success(t("init.language_set")))
+            print(format_message(t("init.language_set"), color="green"))
         if not result.current_git_repository:
             if result.git_repository_path:
                 print(
