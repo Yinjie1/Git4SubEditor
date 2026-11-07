@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
+from typing import Any, cast
 
 from git4subeditor import __version__
 from git4subeditor.cli import (
@@ -45,7 +46,7 @@ class _SummaryFormatter(argparse.HelpFormatter):
     """Use the usage color for positional command names."""
 
     def _format_action_invocation(self, action: argparse.Action) -> str:
-        theme = self._theme
+        theme = cast(Any, self)._theme
         head, *options = action.dest.split(" [")
         parts: list[str] = [f"{theme.summary_action}{head}{theme.reset}"]
         for option in options:
@@ -137,7 +138,17 @@ def _path_basename(path_text: str) -> str:
     return Path(path_text).name
 
 
-def _print_tree_children(entries: list[_TreeEntry], prefix: str) -> None:
+def _relative_display(path: Path) -> str:
+    """Return a path relative to the current directory in POSIX form."""
+    relative: Path = path.resolve().relative_to(Path.cwd().resolve(), walk_up=True)
+    return relative.as_posix()
+
+
+def _print_tree_children(
+    entries: list[_TreeEntry],
+    prefix: str,
+    parent: Path,
+) -> None:
     """Print tree entries below one directory level."""
     files: list[_SubmarineEntry] = [
         submarine for directories, submarine in entries if not directories
@@ -157,7 +168,11 @@ def _print_tree_children(entries: list[_TreeEntry], prefix: str) -> None:
     for directory_name in directory_names:
         index += 1
         connector = "└── " if index == total else "├── "
-        directory_text: str = format_message(directory_name, color="light_blue")
+        directory_path: Path = parent / directory_name
+        directory_text: str = format_message(
+            _relative_display(directory_path),
+            color="light_blue",
+        )
         print(f"{prefix}{connector}{directory_text}")
         child_prefix: str = prefix + ("    " if index == total else "│   ")
         children: list[_TreeEntry] = [
@@ -165,7 +180,7 @@ def _print_tree_children(entries: list[_TreeEntry], prefix: str) -> None:
             for directories, submarine in entries
             if directories and directories[0] == directory_name
         ]
-        _print_tree_children(children, child_prefix)
+        _print_tree_children(children, child_prefix, directory_path)
 
 
 def _print_submarine_tree(info: _WorkspaceInfo) -> None:
@@ -187,8 +202,9 @@ def _print_submarine_tree(info: _WorkspaceInfo) -> None:
 
     if not entries:
         return
-    print(format_message(root_label, color="light_blue"))
-    _print_tree_children(entries, "")
+    root_path: Path = Path.cwd() / root_label
+    print(format_message(_relative_display(root_path), color="light_blue"))
+    _print_tree_children(entries, "", root_path)
 
 
 def _print_workspace_info(info: _WorkspaceInfo | None) -> None:

@@ -29,7 +29,7 @@ class _ArgumentParser(argparse.ArgumentParser):
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         kwargs.setdefault("add_help", False)
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)  # type: ignore
         self.add_argument("-h", "--help", action="help", help=t("arg.help"))
         self._positionals.title = t("help.positionals")
         self._optionals.title = t("help.options")
