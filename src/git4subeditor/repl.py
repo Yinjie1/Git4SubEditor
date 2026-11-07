@@ -63,6 +63,7 @@ def _print_command_list() -> None:
         ("export <file.sub> [-o DIR] [-f]", t("repl.command.export")),
         ("pack <file.xml> [-o FILE]", t("repl.command.pack")),
         ("unpack <file.sub> [-o DIR]", t("repl.command.unpack")),
+        ("tree", t("repl.command.tree")),
         ("exit", t("repl.command.exit")),
     )
     columns: int = shutil.get_terminal_size(fallback=(80, 24)).columns
@@ -183,10 +184,18 @@ def _print_tree_children(
         _print_tree_children(children, child_prefix, directory_path)
 
 
-def _print_submarine_tree(info: _WorkspaceInfo) -> None:
-    """Print registered submarines as a directory tree."""
+def _build_submarine_tree(info: _WorkspaceInfo) -> tuple[Path, list[_TreeEntry]] | None:
+    """Build tree entries from the registered submarine paths.
+
+    Args:
+        info: Workspace information containing registered submarines.
+
+    Returns:
+        The tree root path and entries grouped by directory, or None when no
+        registered submarine has a usable path.
+    """
     if not info.submarines:
-        return
+        return None
 
     root_label: str = info.git_repo or "."
     root_directories: list[str] = _split_path_text(root_label)
@@ -201,8 +210,16 @@ def _print_submarine_tree(info: _WorkspaceInfo) -> None:
         entries.append((directories, submarine))
 
     if not entries:
+        return None
+    return Path.cwd() / root_label, entries
+
+
+def _print_submarine_tree(info: _WorkspaceInfo) -> None:
+    """Print registered submarine paths."""
+    tree = _build_submarine_tree(info)
+    if tree is None:
         return
-    root_path: Path = Path.cwd() / root_label
+    root_path, entries = tree
     print(format_message(_relative_display(root_path), color="light_blue"))
     _print_tree_children(entries, "", root_path)
 
@@ -310,6 +327,12 @@ def run() -> int:
         name: str = tokens[0].casefold()
         if name in {"exit", "quit", "q"}:
             return 0
+        if name == "tree":
+            if workspace is None:
+                print(t("repl.workspace_missing"))
+            else:
+                _print_submarine_tree(workspace)
+            continue
 
         try:
             args: argparse.Namespace = build_parser().parse_args(tokens)
