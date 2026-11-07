@@ -7,6 +7,10 @@
   <message key="help.usage">использование: </message>
   <message key="help.positionals">позиционные аргументы</message>
   <message key="help.options">параметры</message>
+  <message key="repl.commands">Команды:</message>
+  <message key="repl.hint">Введите 'help' для полной справки, 'exit' для выхода.</message>
+  <message key="repl.not_tty">интерактивный режим требует терминала; используйте подкоманду</message>
+  <message key="repl.parse_error">не удалось разобрать командную строку: {error}</message>
 
   <message key="command.init">создать .gitignore и конфигурацию проекта для рабочей папки</message>
   <message key="command.unpack">извлечь исходный XML из файлов .sub</message>

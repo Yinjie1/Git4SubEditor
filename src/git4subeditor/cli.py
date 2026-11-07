@@ -1,6 +1,7 @@
 """Command-line interface for git4subeditor."""
 
 import argparse
+import shlex
 import sys
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -293,20 +294,23 @@ def _registry_preview_override(
         return None
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Run the command-line interface.
+def _run_command(
+    args: argparse.Namespace,
+    *,
+    show_banner: bool = True,
+) -> int:
+    """Execute a parsed command and return its exit code.
 
     Args:
-        argv: Optional argument list for testing. Defaults to sys.argv[1:].
+        args: Parsed command arguments.
+        show_banner: Whether ``init`` should print the startup banner.
 
     Returns:
         Process exit code: 0 on success, 1 if any input failed, 2 on bad usage.
     """
-    set_language(resolve_language())
-    args = build_parser().parse_args(argv)
-
     if args.command == "init":
-        print_banner(__version__)
+        if show_banner:
+            print_banner(__version__)
         selected_language: str | None = None
         if configured_language() is None:
             selected_language = _prompt_language()
@@ -492,6 +496,116 @@ def main(argv: list[str] | None = None) -> int:
             errors += 1
 
     return 1 if errors else 0
+
+
+def _split_interactive_line(line: str) -> list[str]:
+    """Split one interactive command line without mangling Windows paths.
+
+    Args:
+        line: Raw text entered at the interactive prompt.
+
+    Returns:
+        Command tokens with matching outer quotes removed.
+
+    Raises:
+        ValueError: If the line contains an unmatched quote.
+    """
+    lexer: shlex.shlex = shlex.shlex(line, posix=False)
+    lexer.whitespace_split = True
+    lexer.commenters = ""
+    tokens: list[str] = []
+    for token in lexer:
+        if len(token) >= 2 and token[0] == token[-1] and token[0] in "\"'":
+            token = token[1:-1]
+        tokens.append(token)
+    return tokens
+
+
+def _run_interactive() -> int:
+    """Run the interactive command loop.
+
+    Returns:
+        Process exit code.
+    """
+    if sys.stdin is None or not sys.stdin.isatty():
+        print(
+            format_message(t("repl.not_tty"), label="error"),
+            file=sys.stderr,
+        )
+        return 2
+
+    print_banner(__version__)
+    print()
+    print(t("repl.commands"))
+    print("  init")
+    print("  export <file.sub> [-o DIR] [-f]")
+    print("  pack <file.xml> [-o FILE]")
+    print("  unpack <file.sub> [-o DIR]")
+    print("  help")
+    print("  exit")
+    print()
+    print(t("repl.hint"))
+
+    while True:
+        try:
+            line: str = input("git4subeditor> ")
+        except EOFError:
+            print()
+            return 0
+        except KeyboardInterrupt:
+            print()
+            continue
+
+        try:
+            tokens: list[str] = _split_interactive_line(line)
+        except ValueError as exc:
+            print(
+                format_message(t("repl.parse_error", error=exc), label="error"),
+                file=sys.stderr,
+            )
+            continue
+        if not tokens:
+            continue
+
+        name: str = tokens[0].casefold()
+        if name in {"exit", "quit", "q"}:
+            return 0
+        if name in {"help", "?"}:
+            print(build_parser().format_help(), end="")
+            continue
+
+        try:
+            args: argparse.Namespace = build_parser().parse_args(tokens)
+        except SystemExit:
+            continue
+        except KeyboardInterrupt:
+            print()
+            continue
+
+        try:
+            code: int = _run_command(args, show_banner=False)
+        except KeyboardInterrupt:
+            print()
+            continue
+        if args.command == "init" and code == 0:
+            set_language(resolve_language())
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface.
+
+    Args:
+        argv: Optional argument list for testing. Defaults to sys.argv[1:].
+
+    Returns:
+        Process exit code: 0 on success, 1 if any input failed, 2 on bad usage.
+    """
+    set_language(resolve_language())
+    arguments: list[str] = sys.argv[1:] if argv is None else argv
+    if not arguments:
+        return _run_interactive()
+    args: argparse.Namespace = build_parser().parse_args(arguments)
+    return _run_command(args)
 
 
 if __name__ == "__main__":
