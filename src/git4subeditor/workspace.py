@@ -54,6 +54,7 @@ type _TreeEntry = tuple[list[str], SubmarineEntry, str | None]
 type SubmarineConfirm = Callable[
     [tuple[SubmarineEntry, ...], tuple[SubmarineEntry, ...]], bool
 ]
+type RemovalConfirm = Callable[[tuple[SubmarineEntry, ...]], bool]
 type PathConfirm = Callable[[str, str], bool]
 
 
@@ -333,6 +334,7 @@ def initialize_project(
     directory: Path | None = None,
     language: str | None = None,
     confirm_submarines: SubmarineConfirm | None = None,
+    confirm_removals: RemovalConfirm | None = None,
     confirm_mod_root: PathConfirm | None = None,
     confirm_git_repo: PathConfirm | None = None,
 ) -> InitResult:
@@ -360,6 +362,8 @@ def initialize_project(
         confirm_submarines: Optional callback that receives the registered and
             pending submarine entries. Returning False leaves the registry
             unchanged. When omitted, pending changes are applied directly.
+        confirm_removals: Optional callback that receives registered entries
+            whose paths no longer exist. Returning False keeps those entries.
         confirm_mod_root: Optional callback that receives the configured and
             detected MOD root paths. Returning False keeps the configured path.
         confirm_git_repo: Optional callback that receives the configured and
@@ -419,6 +423,7 @@ def initialize_project(
         language,
         repository_root,
         confirm_submarines,
+        confirm_removals,
     )
     return InitResult(
         gitignore_path=gitignore_path,
@@ -507,7 +512,11 @@ def _detect_submarines(
     root: ET.Element | None,
     repository_root: Path | None,
     workspace_root: Path,
-) -> tuple[tuple[SubmarineEntry, ...], tuple[SubmarineEntry, ...]]:
+) -> tuple[
+    tuple[SubmarineEntry, ...],
+    tuple[SubmarineEntry, ...],
+    tuple[SubmarineEntry, ...],
+]:
     """Return scanned submarine files and pending registry changes.
 
     Files inside ``.git`` directories are ignored. Paths are relative to the
@@ -523,8 +532,9 @@ def _detect_submarines(
             paths.
 
     Returns:
-        All submarine entries found below the repository root, and the subset
-        that is new or whose hash differs from the configuration.
+        All submarine entries found below the repository root, the subset that
+        is new or whose hash differs from the configuration, and registered
+        entries whose paths are no longer present.
     """
     entries: list[SubmarineEntry] = []
     if repository_root is not None:
@@ -575,7 +585,11 @@ def _detect_submarines(
                 )
             )
 
-    return tuple(entries), tuple(pending)
+    scanned_paths: set[str] = {entry.path for entry in entries}
+    removed: tuple[SubmarineEntry, ...] = tuple(
+        entry for path, entry in registered.items() if path not in scanned_paths
+    )
+    return tuple(entries), tuple(pending), removed
 
 
 def _confirm_submarine_update(
@@ -604,6 +618,16 @@ def _confirm_submarine_update(
     return confirm(tuple(registered), pending)
 
 
+def _confirm_submarine_removal(
+    confirm: RemovalConfirm | None,
+    removed: tuple[SubmarineEntry, ...],
+) -> bool:
+    """Return whether stale registry entries should be removed."""
+    if confirm is None or not removed:
+        return True
+    return confirm(removed)
+
+
 def _create_project_config(
     base: Path,
     project_name: str,
@@ -612,6 +636,7 @@ def _create_project_config(
     language: str | None,
     repository_root: Path | None,
     confirm_submarines: SubmarineConfirm | None,
+    confirm_removals: RemovalConfirm | None,
 ) -> tuple[
     Path,
     bool,
@@ -634,7 +659,7 @@ def _create_project_config(
         _set_config_value(root, "gitRepo", repository_path)
         _set_config_value(root, "modRoot", mod_root_path)
         _set_config_value(root, "version", __version__)
-        submarines, pending = _detect_submarines(None, repository_root, base)
+        submarines, pending, _ = _detect_submarines(None, repository_root, base)
         update_submarines: bool = _confirm_submarine_update(
             confirm_submarines, root, pending
         )
@@ -647,12 +672,13 @@ def _create_project_config(
     except ET.ParseError as exc:
         raise InitializeError(t("err.invalid_config", path=path, error=exc)) from exc
 
-    submarines, pending = _detect_submarines(root, repository_root, base)
+    submarines, pending, removed = _detect_submarines(root, repository_root, base)
     update_submarines = _confirm_submarine_update(
         confirm_submarines,
         root,
         pending,
     )
+    remove_submarines: bool = _confirm_submarine_removal(confirm_removals, removed)
     changed: bool = False
     legacy: ET.Element | None = root.find("gitRepository")
     if legacy is not None:
@@ -675,11 +701,15 @@ def _create_project_config(
     changed |= _set_config_value(root, "gitRepo", repository_path)
     changed |= _set_config_value(root, "modRoot", mod_root_path)
     changed |= _set_config_value(root, "version", __version__)
+    submarines_updated: bool = False
     if update_submarines:
-        changed |= _sync_submarines(root, submarines)
+        submarines_updated |= _sync_submarines(root, submarines)
+    if remove_submarines:
+        submarines_updated |= _remove_submarines(root, removed)
+    changed |= submarines_updated
     if changed:
         _write_project_config(path, root)
-    return path, False, changed, update_submarines, submarines
+    return path, False, changed, submarines_updated, submarines
 
 
 def _sync_submarines(
@@ -691,7 +721,7 @@ def _sync_submarines(
     Existing entries are matched by path. Their ``name``, ``preview``, and any
     other attributes are preserved, while the hash is refreshed. New entries
     omit the optional ``name`` attribute and get a derived preview and hash.
-    Entries whose paths are no longer present are removed.
+    Entries whose paths are no longer present are left unchanged.
 
     Args:
         root: Root element of the project configuration.
@@ -715,9 +745,7 @@ def _sync_submarines(
             continue
         existing[path_text] = child
 
-    seen: set[str] = set()
     for entry in submarines:
-        seen.add(entry.path)
         child: ET.Element | None = existing.get(entry.path)
         if child is not None:
             new_hash: str = entry.hash or ""
@@ -737,11 +765,24 @@ def _sync_submarines(
         existing[entry.path] = child
         changed = True
 
-    for path_text, child in existing.items():
-        if path_text not in seen:
+    return changed
+
+
+def _remove_submarines(
+    root: ET.Element,
+    removed: tuple[SubmarineEntry, ...],
+) -> bool:
+    """Remove approved stale submarine entries and return whether changed."""
+    element: ET.Element | None = root.find("submarines")
+    if element is None or not removed:
+        return False
+    removed_paths: set[str] = {entry.path for entry in removed}
+    changed: bool = False
+    for child in list(element.findall("submarine")):
+        path_text: str = (child.get("path") or "").strip()
+        if path_text in removed_paths:
             element.remove(child)
             changed = True
-
     return changed
 
 

@@ -43,6 +43,7 @@
   <message key="err.output_multi">--output must be an existing directory when packing multiple files</message>
   <message key="prompt.overwrite">{path} already exists. Overwrite? [y/N] </message>
   <message key="prompt.submarines">Update these submarine entries? [y/N] </message>
+  <message key="prompt.remove_submarines">Remove these submarine entries? [y/N] </message>
   <message key="prompt.mod_root_changed">MOD root: {old} -> {new}. Update? [y/N] </message>
   <message key="prompt.git_repo_changed">Git repo: {old} -> {new}. Update? [y/N] </message>
   <message key="status.skipped">skipped: {path}</message>
@@ -69,6 +70,7 @@
   <message key="init.config_exists">{name} already exists</message>
   <message key="init.registered_header">Registered submarines:</message>
   <message key="init.pending_header">Submarines to add or update:</message>
+  <message key="init.removed_header">Registered submarines to remove:</message>
   <message key="init.registered">registered {count} submarine files</message>
   <message key="init.submarines_skipped">submarine registry not updated</message>
   <message key="init.language_set">Language set to English</message>

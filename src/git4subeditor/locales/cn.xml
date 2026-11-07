@@ -43,6 +43,7 @@
   <message key="err.output_multi">打包多个文件时, --output 必须是已存在的目录</message>
   <message key="prompt.overwrite">{path} 已存在. 是否覆盖? [y/N] </message>
   <message key="prompt.submarines">是否添加/修改这些潜艇? [y/N] </message>
+  <message key="prompt.remove_submarines">是否移除这些潜艇? [y/N] </message>
   <message key="prompt.mod_root_changed">MOD 根目录: {old} -> {new}, 是否更新? [y/N] </message>
   <message key="prompt.git_repo_changed">Git 仓库: {old} -> {new}, 是否更新? [y/N] </message>
   <message key="status.skipped">已跳过: {path}</message>
@@ -69,6 +70,7 @@
   <message key="init.config_exists">{name} 已存在</message>
   <message key="init.registered_header">已注册潜艇:</message>
   <message key="init.pending_header">需要添加或修改的潜艇:</message>
+  <message key="init.removed_header">需要移除的已注册潜艇:</message>
   <message key="init.registered">已注册 {count} 个潜艇文件</message>
   <message key="init.submarines_skipped">未更新潜艇注册信息</message>
   <message key="init.language_set">语言设置为中文</message>

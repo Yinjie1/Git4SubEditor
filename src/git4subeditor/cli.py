@@ -196,6 +196,21 @@ def _confirm_submarines(
     return answer.strip().casefold() == "y"
 
 
+def _confirm_submarine_removals(
+    removed: tuple[SubmarineEntry, ...],
+) -> bool:
+    """Show registered submarines whose files are gone and ask to remove them."""
+    print(t("init.removed_header"))
+    for entry in removed:
+        print(f"  {entry.name}: {entry.path}")
+    try:
+        answer: str = input(t("prompt.remove_submarines"))
+    except EOFError:
+        print()
+        return False
+    return answer.strip().casefold() == "y"
+
+
 def _confirm_path_change(old: str, new: str, key: str) -> bool:
     """Ask whether a configured path should be updated."""
     try:
@@ -365,6 +380,7 @@ def _run_command(
             result = initialize_project(
                 language=selected_language,
                 confirm_submarines=_confirm_submarines,
+                confirm_removals=_confirm_submarine_removals,
                 confirm_mod_root=lambda old, new: _confirm_path_change(
                     old,
                     new,

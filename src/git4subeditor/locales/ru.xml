@@ -43,6 +43,7 @@
   <message key="err.output_multi">при упаковке нескольких файлов --output должен указывать на существующий каталог</message>
   <message key="prompt.overwrite">{path} уже существует. Перезаписать? [y/N] </message>
   <message key="prompt.submarines">Обновить эти записи подводных лодок? [y/N] </message>
+  <message key="prompt.remove_submarines">Удалить эти записи подводных лодок? [y/N] </message>
   <message key="prompt.mod_root_changed">Корень мода: {old} -> {new}. Обновить? [y/N] </message>
   <message key="prompt.git_repo_changed">Git-репозиторий: {old} -> {new}. Обновить? [y/N] </message>
   <message key="status.skipped">пропущено: {path}</message>
@@ -69,6 +70,7 @@
   <message key="init.config_exists">{name} уже существует</message>
   <message key="init.registered_header">Зарегистрированные подводные лодки:</message>
   <message key="init.pending_header">Подводные лодки для добавления или обновления:</message>
+  <message key="init.removed_header">Зарегистрированные подводные лодки для удаления:</message>
   <message key="init.registered">зарегистрировано {count} файлов подводных лодок</message>
   <message key="init.submarines_skipped">реестр подводных лодок не обновлён</message>
   <message key="init.language_set">Язык установлен: русский</message>
