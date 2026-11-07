@@ -303,21 +303,16 @@ def _load_workspace_info() -> _WorkspaceInfo | None:
     )
 
 
-def _print_workspace_info() -> int:
+def _print_workspace_info(info: _WorkspaceInfo | None) -> None:
     """Print the interactive workspace summary.
 
-    Returns:
-        0 on success, 1 when the project configuration is invalid.
+    Args:
+        info: Loaded workspace information, or None when the workspace is not
+            initialized.
     """
-    try:
-        info: _WorkspaceInfo | None = _load_workspace_info()
-    except SubFileError as exc:
-        print(format_message(str(exc), label="error"), file=sys.stderr)
-        return 1
-
     if info is None:
         print(t("repl.workspace_missing"))
-        return 0
+        return
 
     print(
         t(
@@ -329,7 +324,13 @@ def _print_workspace_info() -> int:
     )
     for submarine in info.submarines:
         print(f"  {submarine.name}: {submarine.path}")
-    return 0
+
+
+def _workspace_prompt(info: _WorkspaceInfo | None) -> str:
+    """Return the interactive prompt for the current workspace."""
+    if info is None:
+        return "g4s> "
+    return f"g4s:{info.project_name}> "
 
 
 def _require_registered(
@@ -633,9 +634,12 @@ def _run_interactive() -> int:
 
     print_banner(__version__)
     print()
-    workspace_code: int = _print_workspace_info()
-    if workspace_code:
-        return workspace_code
+    try:
+        workspace: _WorkspaceInfo | None = _load_workspace_info()
+    except SubFileError as exc:
+        print(format_message(str(exc), label="error"), file=sys.stderr)
+        return 1
+    _print_workspace_info(workspace)
     print()
     print(t("repl.commands"))
     print("  init")
@@ -646,10 +650,11 @@ def _run_interactive() -> int:
     print("  exit")
     print()
     print(t("repl.hint"))
+    prompt: str = _workspace_prompt(workspace)
 
     while True:
         try:
-            line: str = input("git4subeditor> ")
+            line: str = input(prompt)
         except EOFError:
             print()
             return 0
@@ -690,6 +695,12 @@ def _run_interactive() -> int:
             continue
         if args.command == "init" and code == 0:
             set_language(resolve_language())
+            try:
+                workspace = _load_workspace_info()
+            except SubFileError:
+                pass
+            else:
+                prompt = _workspace_prompt(workspace)
 
 
 def main(argv: list[str] | None = None) -> int:
