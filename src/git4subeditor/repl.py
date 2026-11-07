@@ -134,68 +134,16 @@ def _split_path_text(path_text: str) -> list[str]:
     return list(parts)
 
 
-def _path_basename(path_text: str) -> str:
-    """Return the final component of a configured path."""
-    return Path(path_text).name
-
-
 def _relative_display(path: Path) -> str:
     """Return a path relative to the current directory in POSIX form."""
     relative: Path = path.resolve().relative_to(Path.cwd().resolve(), walk_up=True)
     return relative.as_posix()
 
 
-def _print_tree_children(
-    entries: list[_TreeEntry],
-    prefix: str,
-    parent: Path,
-) -> None:
-    """Print tree entries below one directory level."""
-    files: list[_SubmarineEntry] = [
-        submarine for directories, submarine in entries if not directories
-    ]
-    directory_names: list[str] = list(
-        dict.fromkeys(directories[0] for directories, _ in entries if directories)
-    )
-
-    total: int = len(files) + len(directory_names)
-    index: int = 0
-    for submarine in files:
-        index += 1
-        connector: str = "└── " if index == total else "├── "
-        filename: str = _path_basename(submarine.path)
-        print(f"{prefix}{connector}{submarine.name}: {filename}")
-
-    for directory_name in directory_names:
-        index += 1
-        connector = "└── " if index == total else "├── "
-        directory_path: Path = parent / directory_name
-        directory_text: str = format_message(
-            _relative_display(directory_path),
-            color="light_blue",
-        )
-        print(f"{prefix}{connector}{directory_text}")
-        child_prefix: str = prefix + ("    " if index == total else "│   ")
-        children: list[_TreeEntry] = [
-            (directories[1:], submarine)
-            for directories, submarine in entries
-            if directories and directories[0] == directory_name
-        ]
-        _print_tree_children(children, child_prefix, directory_path)
-
-
-def _build_submarine_tree(info: _WorkspaceInfo) -> tuple[Path, list[_TreeEntry]] | None:
-    """Build tree entries from the registered submarine paths.
-
-    Args:
-        info: Workspace information containing registered submarines.
-
-    Returns:
-        The tree root path and entries grouped by directory, or None when no
-        registered submarine has a usable path.
-    """
+def _print_submarine_tree(info: _WorkspaceInfo) -> None:
+    """Print registered submarine paths as a directory tree."""
     if not info.submarines:
-        return None
+        return
 
     root_label: str = info.git_repo or "."
     root_directories: list[str] = _split_path_text(root_label)
@@ -210,18 +158,49 @@ def _build_submarine_tree(info: _WorkspaceInfo) -> tuple[Path, list[_TreeEntry]]
         entries.append((directories, submarine))
 
     if not entries:
-        return None
-    return Path.cwd() / root_label, entries
-
-
-def _print_submarine_tree(info: _WorkspaceInfo) -> None:
-    """Print registered submarine paths."""
-    tree = _build_submarine_tree(info)
-    if tree is None:
         return
-    root_path, entries = tree
+
+    def print_children(
+        children: list[_TreeEntry],
+        prefix: str,
+        parent: Path,
+    ) -> None:
+        """Print tree entries below one directory level."""
+        files: list[_SubmarineEntry] = [
+            submarine for directories, submarine in children if not directories
+        ]
+        directory_names: list[str] = list(
+            dict.fromkeys(directories[0] for directories, _ in children if directories)
+        )
+
+        total: int = len(files) + len(directory_names)
+        index: int = 0
+        for submarine in files:
+            index += 1
+            connector: str = "└── " if index == total else "├── "
+            filename: str = Path(submarine.path).name
+            print(f"{prefix}{connector}{submarine.name}: {filename}")
+
+        for directory_name in directory_names:
+            index += 1
+            connector = "└── " if index == total else "├── "
+            directory_path: Path = parent / directory_name
+            directory_text: str = format_message(
+                _relative_display(directory_path),
+                color="light_blue",
+            )
+            print(f"{prefix}{connector}{directory_text}")
+            child_prefix: str = prefix + ("    " if index == total else "│   ")
+            nested: list[_TreeEntry] = [
+                (directories[1:], submarine)
+                for directories, submarine in children
+                if directories and directories[0] == directory_name
+            ]
+            print_children(nested, child_prefix, directory_path)
+
+    root_path: Path = Path.cwd() / root_label
     print(format_message(_relative_display(root_path), color="light_blue"))
-    _print_tree_children(entries, "", root_path)
+    print_children(entries, "", root_path)
 
 
 def _print_workspace_info(info: _WorkspaceInfo | None) -> None:
