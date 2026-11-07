@@ -9,9 +9,9 @@
   <message key="help.options">параметры</message>
   <message key="repl.commands">Команды</message>
   <message key="repl.command.init">инициализировать/обновить рабочую папку</message>
-  <message key="repl.command.export">экспортировать .sub в XML</message>
+  <message key="repl.command.export">извлечь .sub и преобразовать в Git-совместимый XML</message>
   <message key="repl.command.pack">упаковать XML в .sub</message>
-  <message key="repl.command.unpack">извлечь XML из .sub</message>
+  <message key="repl.command.unpack">извлечь .sub только как исходный XML</message>
   <message key="repl.command.tree">показать зарегистрированные подводные лодки</message>
   <message key="repl.command.exit">выйти из интерактивного режима</message>
   <message key="repl.hint">Введите 'exit' для выхода.</message>
