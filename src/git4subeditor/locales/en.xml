@@ -43,6 +43,8 @@
   <message key="err.output_multi">--output must be an existing directory when packing multiple files</message>
   <message key="prompt.overwrite">{path} already exists. Overwrite? [y/N] </message>
   <message key="prompt.submarines">Update these submarine entries? [y/N] </message>
+  <message key="prompt.mod_root_changed">MOD root: {old} -> {new}. Update? [y/N] </message>
+  <message key="prompt.git_repo_changed">Git repo: {old} -> {new}. Update? [y/N] </message>
   <message key="status.skipped">skipped: {path}</message>
   <message key="status.export_preview">{src} -> {xml}, preview: {preview}</message>
   <message key="status.export_no_preview">{src} -> {xml}, no preview</message>

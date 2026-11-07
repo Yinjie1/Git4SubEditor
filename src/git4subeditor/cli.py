@@ -196,6 +196,16 @@ def _confirm_submarines(
     return answer.strip().casefold() == "y"
 
 
+def _confirm_path_change(old: str, new: str, key: str) -> bool:
+    """Ask whether a configured path should be updated."""
+    try:
+        answer: str = input(t(key, old=old or "-", new=new or "-"))
+    except EOFError:
+        print()
+        return False
+    return answer.strip().casefold() == "y"
+
+
 def _prompt_language() -> str:
     """Ask for the project language in Chinese, English, and Russian."""
     print("请选择语言 / Please select a language / Выберите язык:")
@@ -355,6 +365,16 @@ def _run_command(
             result = initialize_project(
                 language=selected_language,
                 confirm_submarines=_confirm_submarines,
+                confirm_mod_root=lambda old, new: _confirm_path_change(
+                    old,
+                    new,
+                    "prompt.mod_root_changed",
+                ),
+                confirm_git_repo=lambda old, new: _confirm_path_change(
+                    old,
+                    new,
+                    "prompt.git_repo_changed",
+                ),
             )
         except InitializeError as exc:
             print(format_message(str(exc), label="error"), file=sys.stderr)

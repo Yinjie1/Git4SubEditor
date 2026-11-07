@@ -43,6 +43,8 @@
   <message key="err.output_multi">при упаковке нескольких файлов --output должен указывать на существующий каталог</message>
   <message key="prompt.overwrite">{path} уже существует. Перезаписать? [y/N] </message>
   <message key="prompt.submarines">Обновить эти записи подводных лодок? [y/N] </message>
+  <message key="prompt.mod_root_changed">Корень мода: {old} -> {new}. Обновить? [y/N] </message>
+  <message key="prompt.git_repo_changed">Git-репозиторий: {old} -> {new}. Обновить? [y/N] </message>
   <message key="status.skipped">пропущено: {path}</message>
   <message key="status.export_preview">{src} -> {xml}, предпросмотр: {preview}</message>
   <message key="status.export_no_preview">{src} -> {xml}, без предпросмотра</message>

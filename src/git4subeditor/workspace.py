@@ -54,6 +54,7 @@ type _TreeEntry = tuple[list[str], SubmarineEntry, str | None]
 type SubmarineConfirm = Callable[
     [tuple[SubmarineEntry, ...], tuple[SubmarineEntry, ...]], bool
 ]
+type PathConfirm = Callable[[str, str], bool]
 
 
 def read_config_root() -> ET.Element | None:
@@ -305,10 +306,35 @@ class InitResult:
     submarines_updated: bool
 
 
+def _read_config_paths(base: Path) -> tuple[str, str] | None:
+    """Return configured gitRepo and modRoot values from an existing config."""
+    path: Path = base / "git4subeditor.xml"
+    try:
+        parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
+        root = ET.parse(path, parser=parser).getroot()
+    except FileNotFoundError:
+        return None
+    except ET.ParseError as exc:
+        raise InitializeError(t("err.invalid_config", path=path, error=exc)) from exc
+    return (
+        (root.findtext("gitRepo") or "").strip(),
+        (root.findtext("modRoot") or "").strip(),
+    )
+
+
+def _choose_path(confirm: PathConfirm | None, old: str, new: str) -> str:
+    """Return the new path when confirmed, otherwise the old path."""
+    if confirm is None or old == new:
+        return new
+    return new if confirm(old, new) else old
+
+
 def initialize_project(
     directory: Path | None = None,
     language: str | None = None,
     confirm_submarines: SubmarineConfirm | None = None,
+    confirm_mod_root: PathConfirm | None = None,
+    confirm_git_repo: PathConfirm | None = None,
 ) -> InitResult:
     """Initialize or update a workspace with .gitignore and project configuration.
 
@@ -334,6 +360,11 @@ def initialize_project(
         confirm_submarines: Optional callback that receives the registered and
             pending submarine entries. Returning False leaves the registry
             unchanged. When omitted, pending changes are applied directly.
+        confirm_mod_root: Optional callback that receives the configured and
+            detected MOD root paths. Returning False keeps the configured path.
+        confirm_git_repo: Optional callback that receives the configured and
+            detected Git repository paths. Returning False keeps the configured
+            path.
 
     Returns:
         Details about the created or updated files.
@@ -360,6 +391,19 @@ def initialize_project(
     )
     project_name: str = mod_root.name or str(mod_root)
     mod_root_path: str = _relative_path(base.resolve(), mod_root)
+    existing_paths: tuple[str, str] | None = _read_config_paths(base)
+    if existing_paths is not None:
+        old_repository_path, old_mod_root_path = existing_paths
+        mod_root_path = _choose_path(
+            confirm_mod_root,
+            old_mod_root_path,
+            mod_root_path,
+        )
+        repository_path = _choose_path(
+            confirm_git_repo,
+            old_repository_path,
+            repository_path,
+        )
     gitignore_path, added, gitignore_created = _update_gitignore(base)
     (
         config_path,
