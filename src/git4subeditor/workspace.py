@@ -19,10 +19,10 @@ class SubmarineEntry:
     Attributes:
         name: Display name. Defaults to the ``.sub`` filename when the
             configuration omits it. Names may repeat and are not identifiers.
-        path: Submarine path relative to the Git repository. This is the
+        path: Submarine path relative to the workspace directory. This is the
             registry identity.
-        preview: Preview image path relative to the Git repository, or None
-            when no preview is configured.
+        preview: Preview image path relative to the workspace directory, or
+            None when no preview is configured.
         hash: SHA-256 hash of the submarine file recorded at registration, or
             None when no hash is configured.
     """
@@ -149,7 +149,8 @@ def _status_suffix(status: str | None) -> str:
 def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
     """Print all submarine paths under the repository.
 
-    Unregistered submarine files are marked with a red ``(U)`` suffix.
+    Paths are shown relative to the workspace directory. Unregistered
+    submarine files are marked with a red ``(U)`` suffix.
     Registered files whose hash changed are marked with a yellow ``(M)``.
 
     Args:
@@ -158,10 +159,11 @@ def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
             path order.
     """
     root_label: str = info.git_repo or "."
-    root_path: Path = Path.cwd() / root_label
+    workspace_root: Path = Path.cwd()
+    root_path: Path = workspace_root / root_label
     root_path_resolved: Path = root_path.resolve()
     registered: dict[Path, SubmarineEntry] = {
-        (root_path / submarine.path).resolve(): submarine
+        (workspace_root / submarine.path).resolve(): submarine
         for submarine in info.submarines
     }
     listed: list[tuple[SubmarineEntry, str | None]] = []
@@ -182,7 +184,7 @@ def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
             status = "U"
             entry = SubmarineEntry(
                 name=path.stem,
-                path=resolved.relative_to(root_path_resolved).as_posix(),
+                path=_relative_display(resolved),
             )
         elif entry.hash is not None and _file_hash(path) != entry.hash:
             status = "M"
@@ -190,20 +192,24 @@ def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
 
     if not tree:
         for submarine, status in listed:
-            path_text: str = _relative_display(root_path / submarine.path)
+            path_text: str = _relative_display(workspace_root / submarine.path)
             print(f"{submarine.name}: {path_text}{_status_suffix(status)}")
         return
 
-    root_directories: list[str] = _split_path_text(root_label)
     entries: list[_TreeEntry] = []
     for submarine, status in listed:
-        parts: list[str] = _split_path_text(submarine.path)
+        try:
+            repository_relative: Path = (
+                (workspace_root / submarine.path)
+                .resolve()
+                .relative_to(root_path_resolved)
+            )
+        except ValueError:
+            continue
+        parts: list[str] = _split_path_text(repository_relative.as_posix())
         if not parts:
             continue
-        directories: list[str] = parts[:-1]
-        if directories[: len(root_directories)] == root_directories:
-            directories = directories[len(root_directories) :]
-        entries.append((directories, submarine, status))
+        entries.append((parts[:-1], submarine, status))
 
     if not entries:
         return
@@ -282,7 +288,7 @@ class InitResult:
         upper_git_repository_path: Path to an upper-level repository relative
             to the workspace, or None when no upper-level repository exists.
         submarines: Submarine files found below the Git repository root, with
-            paths relative to that root.
+            paths relative to the workspace directory.
         submarines_updated: Whether the submarine registry was updated.
     """
 
@@ -314,10 +320,11 @@ def initialize_project(
     and ``version`` fields are updated. The project name is taken from the
     nearest ancestor directory containing ``filelist.xml``. After the Git
     repository is located, ``.sub`` files below its root are registered in
-    the ``submarines`` section. Existing entries are matched by path, which
-    acts as the registry identity. Their ``name``, ``preview``, and other
-    attributes are preserved, while new entries get a derived ``.png``
-    preview and omit the optional ``name`` attribute.
+    the ``submarines`` section using paths relative to the workspace. Existing
+    entries are matched by path, which acts as the registry identity. Their
+    ``name``, ``preview``, and other attributes are preserved, while new
+    entries get a derived ``.png`` preview and omit the optional ``name``
+    attribute.
 
     Args:
         directory: Workspace directory. Defaults to the current working
@@ -455,18 +462,21 @@ def _relative_path(current: Path, target: Path) -> str:
 def _detect_submarines(
     root: ET.Element | None,
     repository_root: Path | None,
+    workspace_root: Path,
 ) -> tuple[tuple[SubmarineEntry, ...], tuple[SubmarineEntry, ...]]:
     """Return scanned submarine files and pending registry changes.
 
     Files inside ``.git`` directories are ignored. Paths are relative to the
-    repository root and always use ``/`` separators. Every scanned entry gets a
-    derived ``.png`` preview path and its SHA-256 hash.
+    workspace directory and always use ``/`` separators. Every scanned entry
+    gets a derived ``.png`` preview path and its SHA-256 hash.
 
     Args:
         root: Existing project configuration root, or None when the
             configuration does not exist yet.
         repository_root: Resolved Git repository root, or None when no
             repository was found.
+        workspace_root: Workspace directory used as the base for relative
+            paths.
 
     Returns:
         All submarine entries found below the repository root, and the subset
@@ -477,14 +487,15 @@ def _detect_submarines(
         for path in repository_root.rglob("*"):
             if path.suffix.lower() != ".sub" or not path.is_file():
                 continue
-            relative: Path = path.relative_to(repository_root)
-            if ".git" in relative.parts[:-1]:
+            repository_relative: Path = path.relative_to(repository_root)
+            if ".git" in repository_relative.parts[:-1]:
                 continue
-            preview: str = relative.with_suffix(".png").as_posix()
+            relative: str = _relative_path(workspace_root.resolve(), path.resolve())
+            preview: str = Path(relative).with_suffix(".png").as_posix()
             entries.append(
                 SubmarineEntry(
                     name=path.stem,
-                    path=relative.as_posix(),
+                    path=relative,
                     preview=preview,
                     hash=_file_hash(path),
                 )
@@ -579,7 +590,7 @@ def _create_project_config(
         _set_config_value(root, "gitRepo", repository_path)
         _set_config_value(root, "modRoot", mod_root_path)
         _set_config_value(root, "version", __version__)
-        submarines, pending = _detect_submarines(None, repository_root)
+        submarines, pending = _detect_submarines(None, repository_root, base)
         update_submarines: bool = _confirm_submarine_update(
             confirm_submarines, root, pending
         )
@@ -592,7 +603,7 @@ def _create_project_config(
     except ET.ParseError as exc:
         raise InitializeError(t("err.invalid_config", path=path, error=exc)) from exc
 
-    submarines, pending = _detect_submarines(root, repository_root)
+    submarines, pending = _detect_submarines(root, repository_root, base)
     update_submarines = _confirm_submarine_update(
         confirm_submarines,
         root,

@@ -216,7 +216,7 @@ class _SubmarineEntry:
 
     Attributes:
         name: Registered submarine name.
-        path: Submarine path relative to the Git repository.
+        path: Submarine path relative to the workspace directory.
         preview_path: Resolved preview image path, or None when no preview is
             configured.
     """
@@ -239,19 +239,17 @@ def _load_registry() -> dict[Path, _SubmarineEntry] | None:
     root: ET.Element | None = read_config_root()
     if root is None:
         return None
-    config_path: Path = Path.cwd() / "git4subeditor.xml"
+    workspace_root: Path = Path.cwd()
 
-    repository_text: str = (root.findtext("gitRepo") or "").strip()
-    repository_root: Path = (config_path.parent / repository_text).resolve()
     registry: dict[Path, _SubmarineEntry] = {}
     for entry in root.findall("./submarines/submarine"):
         path_text: str = (entry.get("path") or "").strip()
         if not path_text:
             continue
-        sub_path: Path = (repository_root / Path(path_text)).resolve()
+        sub_path: Path = (workspace_root / Path(path_text)).resolve()
         preview_text: str = (entry.get("preview") or "").strip()
         preview_path: Path | None = (
-            (repository_root / Path(preview_text)).resolve() if preview_text else None
+            (workspace_root / Path(preview_text)).resolve() if preview_text else None
         )
         registry[sub_path] = _SubmarineEntry(
             name=entry.get("name") or sub_path.stem,
