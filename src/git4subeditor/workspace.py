@@ -1,5 +1,6 @@
 """Workspace configuration, initialization, and registered submarine display."""
 
+import hashlib
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,11 +20,14 @@ class SubmarineEntry:
         path: Submarine path relative to the Git repository.
         preview: Preview image path relative to the Git repository, or None
             when no preview is configured.
+        hash: SHA-256 hash of the submarine file recorded at registration, or
+            None when no hash is configured.
     """
 
     name: str
     path: str
     preview: str | None = None
+    hash: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,7 +47,7 @@ class WorkspaceInfo:
     submarines: tuple[SubmarineEntry, ...]
 
 
-type _TreeEntry = tuple[list[str], SubmarineEntry, bool]
+type _TreeEntry = tuple[list[str], SubmarineEntry, str | None]
 
 
 def read_config_root() -> ET.Element | None:
@@ -89,7 +93,14 @@ def load_workspace_info() -> WorkspaceInfo | None:
         if not path_text:
             continue
         name_text: str = (entry.get("name") or "").strip() or Path(path_text).stem
-        submarines.append(SubmarineEntry(name=name_text, path=path_text))
+        hash_text: str = (entry.get("hash") or "").strip()
+        submarines.append(
+            SubmarineEntry(
+                name=name_text,
+                path=path_text,
+                hash=hash_text or None,
+            )
+        )
 
     return WorkspaceInfo(
         project_name=project_name or Path.cwd().name,
@@ -115,10 +126,25 @@ def _relative_display(path: Path) -> str:
     return relative.as_posix()
 
 
+def _file_hash(path: Path) -> str:
+    """Return the SHA-256 hex digest of a file."""
+    with path.open("rb") as handle:
+        return hashlib.file_digest(handle, "sha256").hexdigest()
+
+
+def _status_suffix(status: str | None) -> str:
+    """Return a colored status suffix for a listed submarine."""
+    if status is None:
+        return ""
+    color: str = "red" if status == "U" else "yellow"
+    return f" {format_message(f'({status})', color=color)}"
+
+
 def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
     """Print all submarine paths under the repository.
 
     Unregistered submarine files are marked with a red ``(U)`` suffix.
+    Registered files whose hash changed are marked with a yellow ``(M)``.
 
     Args:
         info: Workspace information containing registered submarines.
@@ -132,7 +158,7 @@ def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
         (root_path / submarine.path).resolve(): submarine
         for submarine in info.submarines
     }
-    listed: list[tuple[SubmarineEntry, bool]] = []
+    listed: list[tuple[SubmarineEntry, str | None]] = []
     for path in sorted(
         (
             candidate
@@ -145,33 +171,33 @@ def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
             continue
         resolved: Path = path.resolve()
         entry: SubmarineEntry | None = registered.get(resolved)
-        unregistered: bool = entry is None
+        status: str | None = None
         if entry is None:
+            status = "U"
             entry = SubmarineEntry(
                 name=path.stem,
                 path=resolved.relative_to(root_path_resolved).as_posix(),
             )
-        listed.append((entry, unregistered))
-
-    marker: str = format_message("(U)", color="red")
+        elif entry.hash is not None and _file_hash(path) != entry.hash:
+            status = "M"
+        listed.append((entry, status))
 
     if not tree:
-        for submarine, unregistered in listed:
+        for submarine, status in listed:
             path_text: str = _relative_display(root_path / submarine.path)
-            suffix: str = f" {marker}" if unregistered else ""
-            print(f"{submarine.name}: {path_text}{suffix}")
+            print(f"{submarine.name}: {path_text}{_status_suffix(status)}")
         return
 
     root_directories: list[str] = _split_path_text(root_label)
     entries: list[_TreeEntry] = []
-    for submarine, unregistered in listed:
+    for submarine, status in listed:
         parts: list[str] = _split_path_text(submarine.path)
         if not parts:
             continue
         directories: list[str] = parts[:-1]
         if directories[: len(root_directories)] == root_directories:
             directories = directories[len(root_directories) :]
-        entries.append((directories, submarine, unregistered))
+        entries.append((directories, submarine, status))
 
     if not entries:
         return
@@ -182,9 +208,9 @@ def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
         parent: Path,
     ) -> None:
         """Print tree entries below one directory level."""
-        files: list[tuple[SubmarineEntry, bool]] = [
-            (submarine, unregistered)
-            for directories, submarine, unregistered in children
+        files: list[tuple[SubmarineEntry, str | None]] = [
+            (submarine, status)
+            for directories, submarine, status in children
             if not directories
         ]
         directory_names: list[str] = list(
@@ -195,12 +221,14 @@ def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
 
         total: int = len(files) + len(directory_names)
         index: int = 0
-        for submarine, unregistered in files:
+        for submarine, status in files:
             index += 1
             connector: str = "└── " if index == total else "├── "
             filename: str = Path(submarine.path).name
-            suffix: str = f" {marker}" if unregistered else ""
-            print(f"{prefix}{connector}{submarine.name}: {filename}{suffix}")
+            print(
+                f"{prefix}{connector}{submarine.name}: {filename}"
+                f"{_status_suffix(status)}"
+            )
 
         for directory_name in directory_names:
             index += 1
@@ -213,8 +241,8 @@ def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
             print(f"{prefix}{connector}{directory_text}")
             child_prefix: str = prefix + ("    " if index == total else "│   ")
             nested: list[_TreeEntry] = [
-                (directories[1:], submarine, unregistered)
-                for directories, submarine, unregistered in children
+                (directories[1:], submarine, status)
+                for directories, submarine, status in children
                 if directories and directories[0] == directory_name
             ]
             print_children(nested, child_prefix, directory_path)
@@ -436,7 +464,7 @@ def _find_submarines(
     Files inside ``.git`` directories are ignored. Registered paths are
     relative to the repository root and always use ``/`` separators. Every
     entry also gets a ``.png`` preview path derived from its ``.sub`` path;
-    the image does not need to exist yet.
+    the image does not need to exist yet. The file's SHA-256 hash is recorded.
 
     Args:
         repository_root: Resolved Git repository root, or None when no
@@ -461,6 +489,7 @@ def _find_submarines(
                 name=path.stem,
                 path=relative.as_posix(),
                 preview=preview,
+                hash=_file_hash(path),
             )
         )
     entries.sort(key=lambda entry: entry.path.casefold())
@@ -531,11 +560,10 @@ def _sync_submarines(
 ) -> tuple[bool, tuple[SubmarinePathChange, ...]]:
     """Update the submarine registry and report path changes.
 
-    Existing entries are matched by name. When both the name and path match,
-    the entry is left untouched. When the name matches but the path differs,
-    only the path is updated; ``preview`` and any other attributes are
-    preserved. New names are appended with their derived preview. Entries
-    whose names are no longer found are removed.
+    Existing entries are matched by name. Their path and hash are refreshed;
+    ``preview`` and any other attributes are preserved. New names are appended
+    with their derived preview and hash. Entries whose names are no longer
+    found are removed.
 
     Args:
         root: Root element of the project configuration.
@@ -576,6 +604,10 @@ def _sync_submarines(
                     )
                 )
                 changed = True
+            new_hash: str = entry.hash or ""
+            if (child.get("hash") or "") != new_hash:
+                child.set("hash", new_hash)
+                changed = True
             continue
         child = ET.SubElement(
             element,
@@ -583,7 +615,8 @@ def _sync_submarines(
             {
                 "name": entry.name,
                 "path": entry.path,
-                "preview": entry.preview,
+                "preview": entry.preview or "",
+                "hash": entry.hash or "",
             },
         )
         existing[entry.name] = child
