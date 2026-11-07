@@ -7,8 +7,13 @@
   <message key="help.usage">用法: </message>
   <message key="help.positionals">位置参数</message>
   <message key="help.options">选项</message>
-  <message key="repl.commands">命令:</message>
-  <message key="repl.hint">输入 'help' 查看完整帮助, 输入 'exit' 退出.</message>
+  <message key="repl.commands">命令</message>
+  <message key="repl.command.init">初始化工作区</message>
+  <message key="repl.command.export">导出 .sub 为 XML</message>
+  <message key="repl.command.pack">打包 XML 为 .sub</message>
+  <message key="repl.command.unpack">从 .sub 提取 XML</message>
+  <message key="repl.command.exit">退出交互模式</message>
+  <message key="repl.hint">输入 'exit' 退出.</message>
   <message key="repl.not_tty">交互模式需要终端; 请使用子命令</message>
   <message key="repl.parse_error">无法解析命令行: {error}</message>
   <message key="repl.workspace_missing">尚未初始化工作区</message>

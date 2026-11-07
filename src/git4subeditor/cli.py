@@ -2,9 +2,11 @@
 
 import argparse
 import shlex
+import shutil
 import sys
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 
 from git4subeditor import __version__
@@ -211,6 +213,41 @@ class _WorkspaceInfo:
 
 
 type _TreeEntry = tuple[list[str], _SubmarineEntry]
+
+
+def _print_command_list() -> None:
+    """Print the interactive command list in argparse style."""
+    commands: tuple[tuple[str, str], ...] = (
+        ("init", t("repl.command.init")),
+        ("export <file.sub> [-o DIR] [-f]", t("repl.command.export")),
+        ("pack <file.xml> [-o FILE]", t("repl.command.pack")),
+        ("unpack <file.sub> [-o DIR]", t("repl.command.unpack")),
+        ("exit", t("repl.command.exit")),
+    )
+    columns: int = shutil.get_terminal_size(fallback=(80, 24)).columns
+    max_command: int = max(len(syntax) for syntax, _ in commands)
+    max_description: int = max(len(description) for _, description in commands)
+    show_descriptions: bool = columns >= max(
+        max_command + max_description + 6,
+        max_command + 26,
+    )
+    parser = argparse.ArgumentParser(
+        prog="",
+        add_help=False,
+        formatter_class=partial(argparse.HelpFormatter, max_help_position=40),
+    )
+    formatter = parser._get_formatter()
+    formatter.start_section(t("repl.commands"))
+    for syntax, description in commands:
+        formatter.add_argument(
+            argparse.Action(
+                [],
+                syntax,
+                help=description if show_descriptions else None,
+            )
+        )
+    formatter.end_section()
+    print(formatter.format_help(), end="")
 
 
 def _read_config_root() -> ET.Element | None:
@@ -707,13 +744,7 @@ def _run_interactive() -> int:
         return 1
     _print_workspace_info(workspace)
     print()
-    print(t("repl.commands"))
-    print("  init")
-    print("  export <file.sub> [-o DIR] [-f]")
-    print("  pack <file.xml> [-o FILE]")
-    print("  unpack <file.sub> [-o DIR]")
-    print("  help")
-    print("  exit")
+    _print_command_list()
     print()
     print(t("repl.hint"))
     prompt: str = _workspace_prompt(workspace)
@@ -742,9 +773,6 @@ def _run_interactive() -> int:
         name: str = tokens[0].casefold()
         if name in {"exit", "quit", "q"}:
             return 0
-        if name in {"help", "?"}:
-            print(build_parser().format_help(), end="")
-            continue
 
         try:
             args: argparse.Namespace = build_parser().parse_args(tokens)
