@@ -38,6 +38,7 @@
   <message key="arg.sort_attributes_pack">打包前按字母顺序排序 XML 属性</message>
   <message key="arg.output">输出 .sub 文件, 或一个已存在的目录; 默认为 XML 文件所在目录</message>
   <message key="arg.tree">以目录树形式显示已注册潜艇</message>
+  <message key="arg.force_init">自动同意所有初始化更改, 不询问</message>
 
   <message key="err.stdout_single">--stdout 只能接受一个输入文件</message>
   <message key="err.output_multi">打包多个文件时, --output 必须是已存在的目录</message>

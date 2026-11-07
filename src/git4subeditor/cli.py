@@ -4,11 +4,13 @@ import argparse
 import sys
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 
 from git4subeditor import __version__
 from git4subeditor.gitformat import export_sub, pack_sub
 from git4subeditor.l10n import (
+    DEFAULT_LANGUAGE,
     SUPPORTED_LANGUAGES,
     configured_language,
     resolve_language,
@@ -65,9 +67,15 @@ def build_parser() -> argparse.ArgumentParser:
         metavar=t("metavar.command"),
     )
 
-    subparsers.add_parser(
+    init = subparsers.add_parser(
         "init",
         help=t("command.init"),
+    )
+    init.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help=t("arg.force_init"),
     )
 
     sub = subparsers.add_parser(
@@ -374,23 +382,26 @@ def _run_command(
             print_banner(__version__)
         selected_language: str | None = None
         if configured_language() is None:
-            selected_language = _prompt_language()
+            selected_language = DEFAULT_LANGUAGE if args.force else _prompt_language()
             set_language(selected_language)
+        confirm_mod_root = None
+        confirm_git_repo = None
+        if not args.force:
+            confirm_mod_root = partial(
+                _confirm_path_change,
+                key="prompt.mod_root_changed",
+            )
+            confirm_git_repo = partial(
+                _confirm_path_change,
+                key="prompt.git_repo_changed",
+            )
         try:
             result = initialize_project(
                 language=selected_language,
-                confirm_submarines=_confirm_submarines,
-                confirm_removals=_confirm_submarine_removals,
-                confirm_mod_root=lambda old, new: _confirm_path_change(
-                    old,
-                    new,
-                    "prompt.mod_root_changed",
-                ),
-                confirm_git_repo=lambda old, new: _confirm_path_change(
-                    old,
-                    new,
-                    "prompt.git_repo_changed",
-                ),
+                confirm_submarines=None if args.force else _confirm_submarines,
+                confirm_removals=None if args.force else _confirm_submarine_removals,
+                confirm_mod_root=confirm_mod_root,
+                confirm_git_repo=confirm_git_repo,
             )
         except InitializeError as exc:
             print(format_message(str(exc), label="error"), file=sys.stderr)

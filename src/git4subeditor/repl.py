@@ -38,7 +38,7 @@ def _print_command_list() -> None:
     """Print the interactive command list in argparse style."""
     commands: tuple[tuple[str, str], ...] = (
         ("init", t("repl.command.init")),
-        ("export <file.sub> [-o DIR] [-f]", t("repl.command.export")),
+        ("export <file.sub> [-o DIR]", t("repl.command.export")),
         ("pack <file.xml> [-o FILE]", t("repl.command.pack")),
         ("unpack <file.sub> [-o DIR]", t("repl.command.unpack")),
         ("tree", t("repl.command.tree")),

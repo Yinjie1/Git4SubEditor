@@ -38,6 +38,7 @@
   <message key="arg.sort_attributes_pack">sort XML attributes alphabetically before packing</message>
   <message key="arg.output">output .sub file, or an existing directory; defaults to the XML file's directory</message>
   <message key="arg.tree">show registered submarines as a directory tree</message>
+  <message key="arg.force_init">accept all initialization changes without prompting</message>
 
   <message key="err.stdout_single">--stdout accepts only one input file</message>
   <message key="err.output_multi">--output must be an existing directory when packing multiple files</message>
