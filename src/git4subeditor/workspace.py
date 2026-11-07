@@ -618,16 +618,6 @@ def _confirm_submarine_update(
     return confirm(tuple(registered), pending)
 
 
-def _confirm_submarine_removal(
-    confirm: RemovalConfirm | None,
-    removed: tuple[SubmarineEntry, ...],
-) -> bool:
-    """Return whether stale registry entries should be removed."""
-    if confirm is None or not removed:
-        return True
-    return confirm(removed)
-
-
 def _create_project_config(
     base: Path,
     project_name: str,
@@ -664,7 +654,12 @@ def _create_project_config(
             confirm_submarines, root, pending
         )
         if update_submarines:
-            _sync_submarines(root, submarines)
+            _sync_submarines(
+                root,
+                submarines,
+                update=True,
+                remove_missing=True,
+            )
         else:
             ET.SubElement(root, "submarines")
         _write_project_config(path, root)
@@ -678,7 +673,9 @@ def _create_project_config(
         root,
         pending,
     )
-    remove_submarines: bool = _confirm_submarine_removal(confirm_removals, removed)
+    remove_submarines: bool = (
+        not removed or confirm_removals is None or confirm_removals(removed)
+    )
     changed: bool = False
     legacy: ET.Element | None = root.find("gitRepository")
     if legacy is not None:
@@ -702,10 +699,13 @@ def _create_project_config(
     changed |= _set_config_value(root, "modRoot", mod_root_path)
     changed |= _set_config_value(root, "version", __version__)
     submarines_updated: bool = False
-    if update_submarines:
-        submarines_updated |= _sync_submarines(root, submarines)
-    if remove_submarines:
-        submarines_updated |= _remove_submarines(root, removed)
+    if update_submarines or remove_submarines:
+        submarines_updated = _sync_submarines(
+            root,
+            submarines,
+            update=update_submarines,
+            remove_missing=remove_submarines,
+        )
     changed |= submarines_updated
     if changed:
         _write_project_config(path, root)
@@ -715,17 +715,22 @@ def _create_project_config(
 def _sync_submarines(
     root: ET.Element,
     submarines: tuple[SubmarineEntry, ...],
+    *,
+    update: bool,
+    remove_missing: bool,
 ) -> bool:
-    """Update the submarine registry by path.
+    """Sync the submarine registry by path.
 
     Existing entries are matched by path. Their ``name``, ``preview``, and any
-    other attributes are preserved, while the hash is refreshed. New entries
-    omit the optional ``name`` attribute and get a derived preview and hash.
-    Entries whose paths are no longer present are left unchanged.
+    other attributes are preserved. When ``update`` is true, hashes are
+    refreshed and new entries are added without the optional ``name``.
+    When ``remove_missing`` is true, paths absent from the scan are removed.
 
     Args:
         root: Root element of the project configuration.
         submarines: Entries found by the current scan.
+        update: Whether to add or refresh scanned entries.
+        remove_missing: Whether to remove registered paths not in the scan.
 
     Returns:
         Whether the configuration changed.
@@ -733,17 +738,27 @@ def _sync_submarines(
     element: ET.Element | None = root.find("submarines")
     changed: bool = False
     if element is None:
+        if not update:
+            return False
         element = ET.SubElement(root, "submarines")
         changed = True
 
+    scanned_paths: set[str] = {entry.path for entry in submarines}
     existing: dict[str, ET.Element] = {}
     for child in list(element.findall("submarine")):
         path_text: str = (child.get("path") or "").strip()
-        if not path_text or path_text in existing:
+        if (
+            not path_text
+            or path_text in existing
+            or (remove_missing and path_text not in scanned_paths)
+        ):
             element.remove(child)
             changed = True
             continue
         existing[path_text] = child
+
+    if not update:
+        return changed
 
     for entry in submarines:
         child: ET.Element | None = existing.get(entry.path)
@@ -765,24 +780,6 @@ def _sync_submarines(
         existing[entry.path] = child
         changed = True
 
-    return changed
-
-
-def _remove_submarines(
-    root: ET.Element,
-    removed: tuple[SubmarineEntry, ...],
-) -> bool:
-    """Remove approved stale submarine entries and return whether changed."""
-    element: ET.Element | None = root.find("submarines")
-    if element is None or not removed:
-        return False
-    removed_paths: set[str] = {entry.path for entry in removed}
-    changed: bool = False
-    for child in list(element.findall("submarine")):
-        path_text: str = (child.get("path") or "").strip()
-        if path_text in removed_paths:
-            element.remove(child)
-            changed = True
     return changed
 
 
