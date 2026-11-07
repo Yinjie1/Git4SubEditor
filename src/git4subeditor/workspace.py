@@ -11,16 +11,19 @@ from git4subeditor.utils import format_message
 
 
 @dataclass(frozen=True, slots=True)
-class WorkspaceSubmarine:
+class SubmarineEntry:
     """A submarine registered in the project configuration.
 
     Attributes:
         name: Registered submarine name.
         path: Submarine path relative to the Git repository.
+        preview: Preview image path relative to the Git repository, or None
+            when no preview is configured.
     """
 
     name: str
     path: str
+    preview: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,10 +40,10 @@ class WorkspaceInfo:
     project_name: str
     git_repo: str
     mod_root: str
-    submarines: tuple[WorkspaceSubmarine, ...]
+    submarines: tuple[SubmarineEntry, ...]
 
 
-type _TreeEntry = tuple[list[str], WorkspaceSubmarine]
+type _TreeEntry = tuple[list[str], SubmarineEntry]
 
 
 def read_config_root() -> ET.Element | None:
@@ -80,13 +83,13 @@ def load_workspace_info() -> WorkspaceInfo | None:
     project_name: str = (root.findtext("projectName") or "").strip()
     git_repo: str = (root.findtext("gitRepo") or "").strip() or "."
     mod_root: str = (root.findtext("modRoot") or "").strip() or "."
-    submarines: list[WorkspaceSubmarine] = []
+    submarines: list[SubmarineEntry] = []
     for entry in root.findall("./submarines/submarine"):
         path_text: str = (entry.get("path") or "").strip()
         if not path_text:
             continue
         name_text: str = (entry.get("name") or "").strip() or Path(path_text).stem
-        submarines.append(WorkspaceSubmarine(name=name_text, path=path_text))
+        submarines.append(SubmarineEntry(name=name_text, path=path_text))
 
     return WorkspaceInfo(
         project_name=project_name or Path.cwd().name,
@@ -151,7 +154,7 @@ def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
         parent: Path,
     ) -> None:
         """Print tree entries below one directory level."""
-        files: list[WorkspaceSubmarine] = [
+        files: list[SubmarineEntry] = [
             submarine for directories, submarine in children if not directories
         ]
         directory_names: list[str] = list(
@@ -192,23 +195,6 @@ IGNORE_PATTERNS: tuple[str, ...] = ("*.sub", "*.bak", "*.png")
 
 class InitializeError(Exception):
     """Raised when a workspace cannot be recognized as a Barotrauma mod."""
-
-
-@dataclass(frozen=True, slots=True)
-class SubmarineEntry:
-    """A submarine file registered in the project configuration.
-
-    Attributes:
-        name: Registered submarine name, taken from the file stem.
-        path: File path relative to the Git repository root, using POSIX
-            separators.
-        preview: Preview image path relative to the Git repository root, using
-            POSIX separators. It is the ``.sub`` path with a ``.png`` suffix.
-    """
-
-    name: str
-    path: str
-    preview: str
 
 
 @dataclass(frozen=True, slots=True)
