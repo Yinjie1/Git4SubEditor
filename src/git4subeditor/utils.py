@@ -94,18 +94,19 @@ def build_banner(version: str) -> tuple[str, ...]:
 
 
 def print_banner(version: str) -> None:
-    """Print the banner when the terminal is wide enough.
+    """Print the banner, or a one-line fallback when the terminal is narrow.
 
     Args:
-        version: Version text shown on the second line.
+        version: Version text shown on the banner.
     """
     if sys.stdout is None:
         return
     lines: tuple[str, ...] = build_banner(version)
     columns: int = shutil.get_terminal_size(fallback=(80, 24)).columns
-    if columns < max(len(line) for line in lines):
-        return
     try:
+        if columns < max(len(line) for line in lines):
+            print(f"Git4SubEditor by Yinjie {version}", end="\n")
+            return
         print("\n".join(lines))
     except UnicodeEncodeError:
         pass
