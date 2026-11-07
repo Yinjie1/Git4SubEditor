@@ -140,12 +140,25 @@ def _relative_display(path: Path) -> str:
     return relative.as_posix()
 
 
-def _print_submarine_tree(info: _WorkspaceInfo) -> None:
-    """Print registered submarine paths as a directory tree."""
+def _print_submarine_paths(info: _WorkspaceInfo, tree: bool = True) -> None:
+    """Print registered submarine paths, optionally as a directory tree.
+
+    Args:
+        info: Workspace information containing registered submarines.
+        tree: Whether to print a directory tree. When False, print paths in
+            registration order.
+    """
     if not info.submarines:
         return
 
     root_label: str = info.git_repo or "."
+    root_path: Path = Path.cwd() / root_label
+    if not tree:
+        for submarine in info.submarines:
+            path_text: str = _relative_display(root_path / submarine.path)
+            print(f"{submarine.name}: {path_text}")
+        return
+
     root_directories: list[str] = _split_path_text(root_label)
     entries: list[_TreeEntry] = []
     for submarine in info.submarines:
@@ -198,7 +211,6 @@ def _print_submarine_tree(info: _WorkspaceInfo) -> None:
             ]
             print_children(nested, child_prefix, directory_path)
 
-    root_path: Path = Path.cwd() / root_label
     print(format_message(_relative_display(root_path), color="light_blue"))
     print_children(entries, "", root_path)
 
@@ -223,7 +235,7 @@ def _print_workspace_info(info: _WorkspaceInfo | None) -> None:
         )
     )
     print(t("repl.cwd", path=Path.cwd().resolve()))
-    _print_submarine_tree(info)
+    _print_submarine_paths(info)
 
 
 def _workspace_prompt(info: _WorkspaceInfo | None) -> str:
@@ -310,7 +322,7 @@ def run() -> int:
             if workspace is None:
                 print(t("repl.workspace_missing"))
             else:
-                _print_submarine_tree(workspace)
+                _print_submarine_paths(workspace)
             continue
 
         try:
