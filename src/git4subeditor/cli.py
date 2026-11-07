@@ -397,19 +397,6 @@ def _run_command(
                 ),
                 file=sys.stderr,
             )
-        for change in result.submarine_path_changes:
-            print(
-                format_message(
-                    t(
-                        "warning.submarine_path_changed",
-                        name=change.name,
-                        old_path=change.old_path,
-                        new_path=change.new_path,
-                    ),
-                    label="warning",
-                ),
-                file=sys.stderr,
-            )
         patterns: str = ", ".join(result.added)
         all_patterns: str = ", ".join(IGNORE_PATTERNS)
         if result.gitignore_created:
