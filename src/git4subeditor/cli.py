@@ -43,11 +43,6 @@ class _ArgumentParser(argparse.ArgumentParser):
         """Return help text with a localized usage prefix."""
         return super().format_help().replace("usage: ", t("help.usage"), 1)
 
-    def error(self, message: str) -> None:
-        """Print a colorized argument error and exit."""
-        self.print_usage(sys.stderr)
-        self.exit(2, f"{self.prog}: {format_message(message, label='error')}\n")
-
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the command-line argument parser."""
