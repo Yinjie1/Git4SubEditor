@@ -1,6 +1,7 @@
 """Localization support for command-line messages."""
 
 import xml.etree.ElementTree as ET
+from functools import cache
 from importlib import resources
 from pathlib import Path
 
@@ -8,7 +9,6 @@ DEFAULT_LANGUAGE = "en"
 SUPPORTED_LANGUAGES: tuple[str, ...] = ("en", "cn", "ru")
 
 _language: str = DEFAULT_LANGUAGE
-_catalogs: dict[str, dict[str, str]] = {}
 
 
 def configured_language(directory: Path | None = None) -> str | None:
@@ -89,25 +89,19 @@ def t(key: str, **values: object) -> str:
     return message
 
 
+@cache
 def _catalog(language: str) -> dict[str, str]:
     """Load and cache one locale catalog."""
-    try:
-        return _catalogs[language]
-    except KeyError:
-        pass
-
     catalog: dict[str, str] = {}
     try:
         path = resources.files("git4subeditor").joinpath("locales", f"{language}.xml")
         with path.open("rb") as handle:
             root: ET.Element = ET.parse(handle).getroot()
     except (OSError, ET.ParseError):
-        _catalogs[language] = catalog
         return catalog
 
     for element in root.findall("message"):
         key: str | None = element.get("key")
         if key:
             catalog[key] = element.text or ""
-    _catalogs[language] = catalog
     return catalog

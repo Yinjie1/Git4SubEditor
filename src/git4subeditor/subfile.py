@@ -5,7 +5,6 @@ older tools may be plain XML. Both forms are supported.
 """
 
 import gzip
-import io
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -55,10 +54,7 @@ def decompress_sub(data: bytes) -> bytes:
     """
     if data.startswith(GZIP_MAGIC):
         try:
-            # GzipFile supports multi-member streams and is more tolerant than
-            # gzip.decompress for files produced by different tools.
-            with gzip.GzipFile(fileobj=io.BytesIO(data)) as stream:
-                return stream.read()
+            return gzip.decompress(data)
         except (OSError, EOFError) as exc:
             raise SubFileError(t("err.gzip_decompress", error=exc)) from exc
     return data

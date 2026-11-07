@@ -323,19 +323,16 @@ def _path_basename(path_text: str) -> str:
 
 def _print_tree_children(entries: list[_TreeEntry], prefix: str) -> None:
     """Print tree entries below one directory level."""
-    files: list[tuple[list[str], _SubmarineEntry]] = [
-        (directories, submarine)
-        for directories, submarine in entries
-        if not directories
+    files: list[_SubmarineEntry] = [
+        submarine for directories, submarine in entries if not directories
     ]
-    directory_names: list[str] = []
-    for directories, _ in entries:
-        if directories and directories[0] not in directory_names:
-            directory_names.append(directories[0])
+    directory_names: list[str] = list(
+        dict.fromkeys(directories[0] for directories, _ in entries if directories)
+    )
 
     total: int = len(files) + len(directory_names)
     index: int = 0
-    for _, submarine in files:
+    for submarine in files:
         index += 1
         connector: str = "└── " if index == total else "├── "
         filename: str = _path_basename(submarine.path)
@@ -681,15 +678,13 @@ def _split_interactive_line(line: str) -> list[str]:
     Raises:
         ValueError: If the line contains an unmatched quote.
     """
-    lexer: shlex.shlex = shlex.shlex(line, posix=False)
-    lexer.whitespace_split = True
-    lexer.commenters = ""
-    tokens: list[str] = []
-    for token in lexer:
-        if len(token) >= 2 and token[0] == token[-1] and token[0] in "\"'":
-            token = token[1:-1]
-        tokens.append(token)
-    return tokens
+    tokens: list[str] = shlex.split(line, posix=False)
+    return [
+        token[1:-1]
+        if len(token) >= 2 and token[0] == token[-1] and token[0] in "\"'"
+        else token
+        for token in tokens
+    ]
 
 
 def _run_interactive() -> int:

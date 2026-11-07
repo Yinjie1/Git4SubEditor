@@ -226,8 +226,7 @@ def _find_git_repository(base: Path, mod_root: Path) -> tuple[str, bool, str | N
 
 def _relative_path(current: Path, target: Path) -> str:
     """Return a portable relative path from the workspace to the target."""
-    depth: int = len(current.relative_to(target).parts)
-    return "/".join([".."] * depth) or "."
+    return target.relative_to(current, walk_up=True).as_posix()
 
 
 def _find_submarines(

@@ -10,7 +10,6 @@ file, backing up an existing target first.
 import base64
 import binascii
 import gzip
-import io
 import shutil
 import sys
 import xml.etree.ElementTree as ET
@@ -333,23 +332,21 @@ def _require_submarine_root(root: ET.Element) -> None:
         raise SubFileError(t("err.submarine_root", tag=root.tag))
 
 
-def _canonicalize_unordered_attributes(element: ET.Element) -> None:
-    """Sort comma-separated set attributes of an element and its descendants."""
-    for name in _UNORDERED_COMMA_ATTRIBUTES:
-        value = element.attrib.get(name)
-        if value is None or "," not in value:
-            continue
-        parts = [part.strip() for part in value.split(",")]
-        element.attrib[name] = ",".join(sorted(parts, key=str.casefold))
-    for child in element:
-        _canonicalize_unordered_attributes(child)
+def _canonicalize_unordered_attributes(root: ET.Element) -> None:
+    """Sort comma-separated set attributes of the root and its descendants."""
+    for element in root.iter():
+        for name in _UNORDERED_COMMA_ATTRIBUTES:
+            value = element.attrib.get(name)
+            if value is None or "," not in value:
+                continue
+            parts = [part.strip() for part in value.split(",")]
+            element.attrib[name] = ",".join(sorted(parts, key=str.casefold))
 
 
-def _sort_attributes(element: ET.Element) -> None:
-    """Sort the attributes of an element and all its descendants."""
-    element.attrib = dict(sorted(element.attrib.items()))
-    for child in element:
-        _sort_attributes(child)
+def _sort_attributes(root: ET.Element) -> None:
+    """Sort the attributes of the root and all its descendants."""
+    for element in root.iter():
+        element.attrib = dict(sorted(element.attrib.items()))
 
 
 def _guess_image_suffix(image: bytes) -> str:
@@ -424,15 +421,7 @@ def _write_bytes(path: Path, data: bytes) -> None:
 
 def _compress_xml(data: bytes, compresslevel: int) -> bytes:
     """Gzip-compress XML bytes with a stable timestamp."""
-    buffer = io.BytesIO()
     try:
-        with gzip.GzipFile(
-            fileobj=buffer,
-            mode="wb",
-            compresslevel=compresslevel,
-            mtime=0,
-        ) as stream:
-            stream.write(data)
+        return gzip.compress(data, compresslevel=compresslevel, mtime=0)
     except OSError as exc:
         raise SubFileError(t("err.gzip_compress", error=exc)) from exc
-    return buffer.getvalue()
