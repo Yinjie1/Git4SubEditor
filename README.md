@@ -9,8 +9,8 @@
 > [!note]
 > **后续计划**
 > - [ ] 我希望能集成一个Git GUI到游戏中, 并直接在潜艇编辑器中可视化不同版本潜艇的差异, 但我不熟悉这个游戏的接口, 也不会C#/Lua, 如果有感兴趣的大佬可以试试.
-> - [ ] 自动初始化工作区 `git4subeditor init`, 自动添加 `.gitignore` 等
-> - [ ] 多语言
+> - [x] 自动初始化工作区 `git4subeditor init`, 自动添加 `.gitignore` 等
+> - [x] 多语言
 > - [ ] agent skill, 让 ai 根据 `git diff` 拟定提交说明
 
 ## 为什么需要 Git
