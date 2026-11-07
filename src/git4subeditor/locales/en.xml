@@ -13,6 +13,7 @@
   <message key="repl.parse_error">cannot parse command line: {error}</message>
   <message key="repl.workspace_missing">workspace not initialized</message>
   <message key="repl.workspace">Project: {project} | Git repo: {git_repo} | Mod root: {mod_root}</message>
+  <message key="repl.cwd">CWD: {path}</message>
 
   <message key="command.init">create .gitignore and project configuration for a workspace</message>
   <message key="command.unpack">extract raw XML from .sub files</message>

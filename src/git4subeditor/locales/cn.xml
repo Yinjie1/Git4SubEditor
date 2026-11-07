@@ -13,6 +13,7 @@
   <message key="repl.parse_error">无法解析命令行: {error}</message>
   <message key="repl.workspace_missing">尚未初始化工作区</message>
   <message key="repl.workspace">项目: {project} | Git 仓库: {git_repo} | 模组根目录: {mod_root}</message>
+  <message key="repl.cwd">CWD: {path}</message>
 
   <message key="command.init">为工作区创建 .gitignore 和项目配置</message>
   <message key="command.unpack">从 .sub 文件中提取原始 XML</message>

@@ -393,6 +393,7 @@ def _print_workspace_info(info: _WorkspaceInfo | None) -> None:
             mod_root=info.mod_root,
         )
     )
+    print(t("repl.cwd", path=Path.cwd().resolve()))
     _print_submarine_tree(info)
 
 
