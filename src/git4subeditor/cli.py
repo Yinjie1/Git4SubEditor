@@ -196,6 +196,57 @@ class _RegisteredSubmarine:
     preview_path: Path | None
 
 
+@dataclass(frozen=True, slots=True)
+class _WorkspaceSubmarine:
+    """A submarine entry shown in the interactive workspace summary.
+
+    Attributes:
+        name: Registered submarine name.
+        path: Registered submarine path relative to the Git repository.
+    """
+
+    name: str
+    path: str
+
+
+@dataclass(frozen=True, slots=True)
+class _WorkspaceInfo:
+    """Project information shown when the interactive mode starts.
+
+    Attributes:
+        project_name: Project name from ``git4subeditor.xml``.
+        git_repo: Git repository path relative to the workspace.
+        mod_root: MOD root path relative to the workspace.
+        submarines: Registered submarines in configuration order.
+    """
+
+    project_name: str
+    git_repo: str
+    mod_root: str
+    submarines: tuple[_WorkspaceSubmarine, ...]
+
+
+def _read_config_root() -> ET.Element | None:
+    """Read the current directory project configuration root.
+
+    Returns:
+        The ``git4subeditor`` element, or None when the configuration does not
+        exist.
+
+    Raises:
+        SubFileError: If the configuration cannot be read or parsed.
+    """
+    config_path: Path = Path.cwd() / "git4subeditor.xml"
+    try:
+        return ET.parse(config_path).getroot()
+    except FileNotFoundError:
+        return None
+    except (OSError, ET.ParseError) as exc:
+        raise SubFileError(
+            t("err.invalid_config", path=config_path, error=exc)
+        ) from exc
+
+
 def _load_registry() -> dict[Path, _RegisteredSubmarine] | None:
     """Load submarine entries from the current directory project config.
 
@@ -206,15 +257,10 @@ def _load_registry() -> dict[Path, _RegisteredSubmarine] | None:
     Raises:
         SubFileError: If the configuration cannot be read or parsed.
     """
-    config_path: Path = Path.cwd() / "git4subeditor.xml"
-    try:
-        root: ET.Element = ET.parse(config_path).getroot()
-    except FileNotFoundError:
+    root: ET.Element | None = _read_config_root()
+    if root is None:
         return None
-    except (OSError, ET.ParseError) as exc:
-        raise SubFileError(
-            t("err.invalid_config", path=config_path, error=exc)
-        ) from exc
+    config_path: Path = Path.cwd() / "git4subeditor.xml"
 
     repository_text: str = (root.findtext("gitRepo") or "").strip()
     repository_root: Path = (config_path.parent / repository_text).resolve()
@@ -233,6 +279,67 @@ def _load_registry() -> dict[Path, _RegisteredSubmarine] | None:
             preview_path=preview_path,
         )
     return registry
+
+
+def _load_workspace_info() -> _WorkspaceInfo | None:
+    """Load workspace details from the current directory project config.
+
+    Returns:
+        Workspace details, or None when ``git4subeditor.xml`` does not exist.
+
+    Raises:
+        SubFileError: If the configuration cannot be read or parsed.
+    """
+    root: ET.Element | None = _read_config_root()
+    if root is None:
+        return None
+
+    project_name: str = (root.findtext("projectName") or "").strip()
+    git_repo: str = (root.findtext("gitRepo") or "").strip() or "."
+    mod_root: str = (root.findtext("modRoot") or "").strip() or "."
+    submarines: list[_WorkspaceSubmarine] = []
+    for entry in root.findall("./submarines/submarine"):
+        path_text: str = (entry.get("path") or "").strip()
+        if not path_text:
+            continue
+        name_text: str = (entry.get("name") or "").strip() or Path(path_text).stem
+        submarines.append(_WorkspaceSubmarine(name=name_text, path=path_text))
+
+    return _WorkspaceInfo(
+        project_name=project_name or Path.cwd().name,
+        git_repo=git_repo,
+        mod_root=mod_root,
+        submarines=tuple(submarines),
+    )
+
+
+def _print_workspace_info() -> int:
+    """Print the interactive workspace summary.
+
+    Returns:
+        0 on success, 1 when the project configuration is invalid.
+    """
+    try:
+        info: _WorkspaceInfo | None = _load_workspace_info()
+    except SubFileError as exc:
+        print(format_message(str(exc), label="error"), file=sys.stderr)
+        return 1
+
+    if info is None:
+        print(t("repl.workspace_missing"))
+        return 0
+
+    print(
+        t(
+            "repl.workspace",
+            project=info.project_name,
+            git_repo=info.git_repo,
+            mod_root=info.mod_root,
+        )
+    )
+    for submarine in info.submarines:
+        print(f"  {submarine.name}: {submarine.path}")
+    return 0
 
 
 def _require_registered(
@@ -535,6 +642,10 @@ def _run_interactive() -> int:
         return 2
 
     print_banner(__version__)
+    print()
+    workspace_code: int = _print_workspace_info()
+    if workspace_code:
+        return workspace_code
     print()
     print(t("repl.commands"))
     print("  init")

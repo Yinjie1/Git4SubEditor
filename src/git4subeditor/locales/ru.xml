@@ -11,6 +11,8 @@
   <message key="repl.hint">Введите 'help' для полной справки, 'exit' для выхода.</message>
   <message key="repl.not_tty">интерактивный режим требует терминала; используйте подкоманду</message>
   <message key="repl.parse_error">не удалось разобрать командную строку: {error}</message>
+  <message key="repl.workspace_missing">рабочая папка не инициализирована</message>
+  <message key="repl.workspace">Проект: {project} | Git repo: {git_repo} | Корень мода: {mod_root}</message>
 
   <message key="command.init">создать .gitignore и конфигурацию проекта для рабочей папки</message>
   <message key="command.unpack">извлечь исходный XML из файлов .sub</message>
