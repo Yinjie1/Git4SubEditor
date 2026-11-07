@@ -8,11 +8,6 @@ from pathlib import Path
 
 from git4subeditor import __version__
 from git4subeditor.gitformat import export_sub, pack_sub
-from git4subeditor.initialize import (
-    IGNORE_PATTERNS,
-    InitializeError,
-    initialize_project,
-)
 from git4subeditor.l10n import (
     SUPPORTED_LANGUAGES,
     configured_language,
@@ -22,6 +17,14 @@ from git4subeditor.l10n import (
 )
 from git4subeditor.subfile import SubFileError, unpack_sub
 from git4subeditor.utils import format_message, print_banner
+from git4subeditor.workspace import (
+    IGNORE_PATTERNS,
+    InitializeError,
+    initialize_project,
+    load_workspace_info,
+    print_submarine_paths,
+    read_config_root,
+)
 
 
 class _ArgumentParser(argparse.ArgumentParser):
@@ -64,6 +67,16 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "init",
         help=t("command.init"),
+    )
+
+    sub = subparsers.add_parser(
+        "sub",
+        help=t("command.sub"),
+    )
+    sub.add_argument(
+        "--tree",
+        action="store_true",
+        help=t("arg.tree"),
     )
 
     unpack = subparsers.add_parser(
@@ -192,27 +205,6 @@ class _SubmarineEntry:
     preview_path: Path | None = None
 
 
-def _read_config_root() -> ET.Element | None:
-    """Read the current directory project configuration root.
-
-    Returns:
-        The ``git4subeditor`` element, or None when the configuration does not
-        exist.
-
-    Raises:
-        SubFileError: If the configuration cannot be read or parsed.
-    """
-    config_path: Path = Path.cwd() / "git4subeditor.xml"
-    try:
-        return ET.parse(config_path).getroot()
-    except FileNotFoundError:
-        return None
-    except (OSError, ET.ParseError) as exc:
-        raise SubFileError(
-            t("err.invalid_config", path=config_path, error=exc)
-        ) from exc
-
-
 def _load_registry() -> dict[Path, _SubmarineEntry] | None:
     """Load submarine entries from the current directory project config.
 
@@ -223,7 +215,7 @@ def _load_registry() -> dict[Path, _SubmarineEntry] | None:
     Raises:
         SubFileError: If the configuration cannot be read or parsed.
     """
-    root: ET.Element | None = _read_config_root()
+    root: ET.Element | None = read_config_root()
     if root is None:
         return None
     config_path: Path = Path.cwd() / "git4subeditor.xml"
@@ -321,6 +313,18 @@ def _run_command(
     Returns:
         Process exit code: 0 on success, 1 if any input failed, 2 on bad usage.
     """
+    if args.command == "sub":
+        try:
+            info = load_workspace_info()
+        except SubFileError as exc:
+            print(format_message(str(exc), label="error"), file=sys.stderr)
+            return 1
+        if info is None:
+            print(t("repl.workspace_missing"))
+            return 1
+        print_submarine_paths(info, tree=args.tree)
+        return 0
+
     if args.command == "init":
         if show_banner:
             print_banner(__version__)

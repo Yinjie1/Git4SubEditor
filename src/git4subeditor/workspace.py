@@ -1,4 +1,4 @@
-"""Initialize project files for a Barotrauma submarine workspace."""
+"""Workspace configuration, initialization, and registered submarine display."""
 
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -6,6 +6,186 @@ from pathlib import Path
 
 from git4subeditor import __version__
 from git4subeditor.l10n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, t
+from git4subeditor.subfile import SubFileError
+from git4subeditor.utils import format_message
+
+
+@dataclass(frozen=True, slots=True)
+class WorkspaceSubmarine:
+    """A submarine registered in the project configuration.
+
+    Attributes:
+        name: Registered submarine name.
+        path: Submarine path relative to the Git repository.
+    """
+
+    name: str
+    path: str
+
+
+@dataclass(frozen=True, slots=True)
+class WorkspaceInfo:
+    """Project information used by the CLI and interactive mode.
+
+    Attributes:
+        project_name: Project name from ``git4subeditor.xml``.
+        git_repo: Git repository path relative to the workspace.
+        mod_root: MOD root path relative to the workspace.
+        submarines: Registered submarines in configuration order.
+    """
+
+    project_name: str
+    git_repo: str
+    mod_root: str
+    submarines: tuple[WorkspaceSubmarine, ...]
+
+
+type _TreeEntry = tuple[list[str], WorkspaceSubmarine]
+
+
+def read_config_root() -> ET.Element | None:
+    """Read the current directory project configuration root.
+
+    Returns:
+        The ``git4subeditor`` element, or None when the configuration does not
+        exist.
+
+    Raises:
+        SubFileError: If the configuration cannot be read or parsed.
+    """
+    config_path: Path = Path.cwd() / "git4subeditor.xml"
+    try:
+        return ET.parse(config_path).getroot()
+    except FileNotFoundError:
+        return None
+    except (OSError, ET.ParseError) as exc:
+        raise SubFileError(
+            t("err.invalid_config", path=config_path, error=exc)
+        ) from exc
+
+
+def load_workspace_info() -> WorkspaceInfo | None:
+    """Load workspace details from the current directory project config.
+
+    Returns:
+        Workspace details, or None when ``git4subeditor.xml`` does not exist.
+
+    Raises:
+        SubFileError: If the configuration cannot be read or parsed.
+    """
+    root: ET.Element | None = read_config_root()
+    if root is None:
+        return None
+
+    project_name: str = (root.findtext("projectName") or "").strip()
+    git_repo: str = (root.findtext("gitRepo") or "").strip() or "."
+    mod_root: str = (root.findtext("modRoot") or "").strip() or "."
+    submarines: list[WorkspaceSubmarine] = []
+    for entry in root.findall("./submarines/submarine"):
+        path_text: str = (entry.get("path") or "").strip()
+        if not path_text:
+            continue
+        name_text: str = (entry.get("name") or "").strip() or Path(path_text).stem
+        submarines.append(WorkspaceSubmarine(name=name_text, path=path_text))
+
+    return WorkspaceInfo(
+        project_name=project_name or Path.cwd().name,
+        git_repo=git_repo,
+        mod_root=mod_root,
+        submarines=tuple(submarines),
+    )
+
+
+def _split_path_text(path_text: str) -> list[str]:
+    """Split a configured path into components."""
+    parts: tuple[str, ...] = Path(path_text).parts
+    if not parts:
+        return ["."]
+    if path_text.startswith(("./", ".\\")):
+        return [".", *parts]
+    return list(parts)
+
+
+def _relative_display(path: Path) -> str:
+    """Return a path relative to the current directory in POSIX form."""
+    relative: Path = path.resolve().relative_to(Path.cwd().resolve(), walk_up=True)
+    return relative.as_posix()
+
+
+def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
+    """Print registered submarine paths, optionally as a directory tree.
+
+    Args:
+        info: Workspace information containing registered submarines.
+        tree: Whether to print a directory tree. When False, print paths in
+            registration order.
+    """
+    if not info.submarines:
+        return
+
+    root_label: str = info.git_repo or "."
+    root_path: Path = Path.cwd() / root_label
+    if not tree:
+        for submarine in info.submarines:
+            path_text: str = _relative_display(root_path / submarine.path)
+            print(f"{submarine.name}: {path_text}")
+        return
+
+    root_directories: list[str] = _split_path_text(root_label)
+    entries: list[_TreeEntry] = []
+    for submarine in info.submarines:
+        parts: list[str] = _split_path_text(submarine.path)
+        if not parts:
+            continue
+        directories: list[str] = parts[:-1]
+        if directories[: len(root_directories)] == root_directories:
+            directories = directories[len(root_directories) :]
+        entries.append((directories, submarine))
+
+    if not entries:
+        return
+
+    def print_children(
+        children: list[_TreeEntry],
+        prefix: str,
+        parent: Path,
+    ) -> None:
+        """Print tree entries below one directory level."""
+        files: list[WorkspaceSubmarine] = [
+            submarine for directories, submarine in children if not directories
+        ]
+        directory_names: list[str] = list(
+            dict.fromkeys(directories[0] for directories, _ in children if directories)
+        )
+
+        total: int = len(files) + len(directory_names)
+        index: int = 0
+        for submarine in files:
+            index += 1
+            connector: str = "└── " if index == total else "├── "
+            filename: str = Path(submarine.path).name
+            print(f"{prefix}{connector}{submarine.name}: {filename}")
+
+        for directory_name in directory_names:
+            index += 1
+            connector = "└── " if index == total else "├── "
+            directory_path: Path = parent / directory_name
+            directory_text: str = format_message(
+                _relative_display(directory_path),
+                color="light_blue",
+            )
+            print(f"{prefix}{connector}{directory_text}")
+            child_prefix: str = prefix + ("    " if index == total else "│   ")
+            nested: list[_TreeEntry] = [
+                (directories[1:], submarine)
+                for directories, submarine in children
+                if directories and directories[0] == directory_name
+            ]
+            print_children(nested, child_prefix, directory_path)
+
+    print(format_message(_relative_display(root_path), color="light_blue"))
+    print_children(entries, "", root_path)
+
 
 IGNORE_PATTERNS: tuple[str, ...] = ("*.sub", "*.bak", "*.png")
 

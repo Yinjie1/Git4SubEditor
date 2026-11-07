@@ -25,6 +25,7 @@
   <message key="command.unpack">extract raw XML from .sub files</message>
   <message key="command.export">export a .sub file as canonical XML plus a preview image</message>
   <message key="command.pack">pack an exported XML file back into a .sub file</message>
+  <message key="command.sub">list registered submarines</message>
 
   <message key="arg.inputs.sub">one or more .sub files</message>
   <message key="arg.inputs.xml">one or more exported XML files</message>
@@ -36,6 +37,7 @@
   <message key="arg.sort_attributes">sort XML attributes alphabetically for more stable diffs</message>
   <message key="arg.sort_attributes_pack">sort XML attributes alphabetically before packing</message>
   <message key="arg.output">output .sub file, or an existing directory; defaults to the XML file's directory</message>
+  <message key="arg.tree">show registered submarines as a directory tree</message>
 
   <message key="err.stdout_single">--stdout accepts only one input file</message>
   <message key="err.output_multi">--output must be an existing directory when packing multiple files</message>

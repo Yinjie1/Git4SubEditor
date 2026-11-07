@@ -1,4 +1,4 @@
-"""Run the git4subeditor command-line interface."""
+"""Run the git4subeditor application."""
 
 from git4subeditor.cli import main
 

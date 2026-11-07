@@ -25,6 +25,7 @@
   <message key="command.unpack">извлечь исходный XML из файлов .sub</message>
   <message key="command.export">экспортировать .sub в канонический XML и изображение предпросмотра</message>
   <message key="command.pack">упаковать экспортированный XML обратно в .sub</message>
+  <message key="command.sub">список зарегистрированных подводных лодок</message>
 
   <message key="arg.inputs.sub">один или несколько файлов .sub</message>
   <message key="arg.inputs.xml">один или несколько экспортированных XML-файлов</message>
@@ -36,6 +37,7 @@
   <message key="arg.sort_attributes">сортировать атрибуты XML по алфавиту для стабильных diff</message>
   <message key="arg.sort_attributes_pack">сортировать атрибуты XML по алфавиту перед упаковкой</message>
   <message key="arg.output">выходной файл .sub или существующий каталог; по умолчанию каталог XML-файла</message>
+  <message key="arg.tree">показать зарегистрированные подводные лодки в виде дерева каталогов</message>
 
   <message key="err.stdout_single">--stdout принимает только один входной файл</message>
   <message key="err.output_multi">при упаковке нескольких файлов --output должен указывать на существующий каталог</message>
