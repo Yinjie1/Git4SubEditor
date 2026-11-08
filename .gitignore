@@ -2,6 +2,7 @@
 *.sub
 *.bak
 *.png
+history
 docs/
 git4subeditor.xml
 *.code-workspace

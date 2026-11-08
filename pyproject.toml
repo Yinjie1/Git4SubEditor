@@ -4,11 +4,11 @@ build-backend = "uv_build"
 
 [project]
 name = "git4subeditor"
-version = "0.1.14"
+version = "0.1.15"
 description = "Convert Barotrauma .sub submarine files into Git-friendly text"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = ["prompt_toolkit>=3.0"]
 keywords = ["barotrauma", "submarine", "git", "modding"]
 classifiers = [
     "Programming Language :: Python :: 3",
