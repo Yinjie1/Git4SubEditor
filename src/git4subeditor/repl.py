@@ -8,10 +8,6 @@ from functools import partial
 from pathlib import Path
 from typing import Any, cast
 
-from prompt_toolkit import PromptSession
-from prompt_toolkit.formatted_text import ANSI
-from prompt_toolkit.history import FileHistory
-
 from git4subeditor import __version__
 from git4subeditor.cli import _run_command, build_parser
 from git4subeditor.l10n import resolve_language, set_language, t
@@ -152,11 +148,24 @@ def run() -> int:
     print()
     print(t("repl.hint"))
     prompt: str = _workspace_prompt(workspace)
-    session = PromptSession(history=FileHistory(str(Path.cwd() / "history")))
+    session: Any = None
+    ansi: Any = None
+    try:
+        from prompt_toolkit import PromptSession
+        from prompt_toolkit.formatted_text import ANSI
+        from prompt_toolkit.history import FileHistory
+    except ImportError:
+        pass
+    else:
+        session = PromptSession(history=FileHistory(str(Path.cwd() / "history")))
+        ansi = ANSI
 
     while True:
         try:
-            line: str = session.prompt(ANSI(prompt))
+            if session is None:
+                line: str = input(prompt)
+            else:
+                line = session.prompt(ansi(prompt))
         except EOFError:
             print()
             return 0
