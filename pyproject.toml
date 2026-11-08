@@ -14,9 +14,17 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
 ]
+authors = [{ name = "Yinjie" }]
+license = "MIT"
+license-files = ["LICENSE"]
 
 [project.scripts]
 git4subeditor = "git4subeditor.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Yinjie1/Git4SubEditor"
+Repository = "https://github.com/Yinjie1/Git4SubEditor"
+Issues = "https://github.com/Yinjie1/Git4SubEditor/issues"
 
 [project.optional-dependencies]
 dev = [
