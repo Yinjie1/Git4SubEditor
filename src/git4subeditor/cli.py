@@ -561,6 +561,7 @@ def _run_command(
         args.inputs = [Path.cwd() / entry.path for entry in targets]
         auto_export = True
 
+    exported: list[Path] = []
     errors: int = 0
     for src in args.inputs:
         try:
@@ -596,6 +597,7 @@ def _run_command(
                     force=force,
                     sort_attributes=args.sort_attributes,
                 )
+                exported.append(src)
                 if result.preview_path is not None:
                     print(
                         t(
@@ -633,9 +635,24 @@ def _run_command(
             print(format_message(str(exc), label="error"), file=sys.stderr)
             errors += 1
 
-    if auto_export and not errors:
+    if exported and not errors and registry is not None:
         try:
-            refresh_submarine_hashes(targets)
+            info = load_workspace_info()
+            if info is not None:
+                repository_root = (Path.cwd() / (info.git_repo or ".")).resolve()
+                scanned, _, _, _ = _detect_submarines(
+                    read_config_root(),
+                    repository_root,
+                    Path.cwd(),
+                )
+                exported_paths: set[Path] = {path.resolve() for path in exported}
+                refresh_submarine_hashes(
+                    tuple(
+                        entry
+                        for entry in scanned
+                        if (Path.cwd() / entry.path).resolve() in exported_paths
+                    )
+                )
         except SubFileError as exc:
             print(format_message(str(exc), label="error"), file=sys.stderr)
             return 1
