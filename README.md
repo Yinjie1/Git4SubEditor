@@ -1,6 +1,9 @@
 # Git4SubEditor
 > Git for Submarine Editor
 
+[![GitHub](https://img.shields.io/badge/GitHub-Git4SubEditor-181717?logo=github)](https://github.com/Yinjie1/Git4SubEditor)
+[![PyPI](https://img.shields.io/pypi/v/git4subeditor?logo=pypi)](https://pypi.org/project/git4subeditor/)
+
 一个 CLI 工具, 把 Barotrauma 的 `.sub` 潜艇文件转换为适合 Git 版本追踪的文本格式, 也支持将其转回 `.sub` 文件.
 
 > [!warning]
