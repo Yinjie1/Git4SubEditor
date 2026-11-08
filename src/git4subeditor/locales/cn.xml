@@ -15,6 +15,39 @@
   <message key="repl.command.tree">显示已注册潜艇</message>
   <message key="repl.command.exit">退出交互模式</message>
   <message key="repl.hint">Tab 补全 · ↑↓ 历史 · Ctrl-R 搜索 · Ctrl-D 退出 · ? 帮助</message>
+  <message key="repl.help"><![CDATA[交互模式命令
+
+tree
+  以目录树形式显示 Git 仓库下的潜艇 .sub 文件.
+  - 未注册文件末尾显示红色 (U)
+  - 已注册但哈希变化的文件末尾显示黄色 (M)
+
+export
+  导出 .sub 为 Git 友好的 XML.
+
+  export
+      导出所有发生改动的已注册潜艇
+  export "test/My Sub1.sub" "test/My Sub2.sub" ...
+      导出一个或多个已注册潜艇
+  export "test/My Sub1.sub" -o ./mydir
+      导出潜艇到指定目录
+
+  注意: 若潜艇名或目录名包含空格, 路径必须加上引号, 否则会被识别成多个参数
+
+pack
+  把导出的 XML 打包回 .sub.
+
+  pack "test/My Sub.xml"
+  pack "test/My Sub.xml" -o ./mydir
+      打包到指定目录
+
+  注意: 如果输出 .sub 已存在, 会先备份为 .sub.bak, 然后覆盖.
+
+unpack
+  只解压潜艇 .sub 文件为原始 XML, 此命令比较少用
+
+  unpack "test/My Sub.sub"
+]]></message>
   <message key="repl.not_tty">交互模式需要终端; 请使用子命令</message>
   <message key="repl.parse_error">无法解析命令行: {error}</message>
   <message key="repl.workspace_missing">尚未初始化工作区</message>

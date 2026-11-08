@@ -15,6 +15,41 @@
   <message key="repl.command.tree">show registered submarines</message>
   <message key="repl.command.exit">quit interactive mode</message>
   <message key="repl.hint">Tab complete · ↑↓ history · Ctrl-R search · Ctrl-D quit · ? help</message>
+  <message key="repl.help"><![CDATA[Interactive commands
+
+tree
+  Show submarine .sub files in the Git repository as a directory tree.
+  - Unregistered files end with a red (U)
+  - Registered files with a changed hash end with a yellow (M)
+
+export
+  Export .sub files as Git-friendly XML.
+
+  export
+      Export all changed registered submarines
+  export "test/My Sub1.sub" "test/My Sub2.sub" ...
+      Export one or more registered submarines
+  export "test/My Sub1.sub" -o ./mydir
+      Export a submarine to the specified directory
+
+  Note: if a submarine or directory name contains spaces, quote the path;
+  otherwise it will be parsed as multiple arguments.
+
+pack
+  Pack exported XML back into .sub.
+
+  pack "test/My Sub.xml"
+  pack "test/My Sub.xml" -o ./mydir
+      Pack into the specified directory
+
+  Note: if the output .sub already exists, it is backed up to .sub.bak first,
+  then overwritten.
+
+unpack
+  Extract a submarine .sub file as raw XML. This command is rarely used.
+
+  unpack "test/My Sub.sub"
+]]></message>
   <message key="repl.not_tty">interactive mode requires a terminal; use a subcommand instead</message>
   <message key="repl.parse_error">cannot parse command line: {error}</message>
   <message key="repl.workspace_missing">workspace not initialized</message>

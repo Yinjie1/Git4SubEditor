@@ -211,6 +211,9 @@ def run() -> int:
         name: str = tokens[0].casefold()
         if name == "q":
             return 0
+        if name == "?":
+            print(t("repl.help"), end="")
+            continue
         if name == "tree":
             if workspace is None:
                 print(t("repl.workspace_missing"))
