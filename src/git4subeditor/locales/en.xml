@@ -12,7 +12,7 @@
   <message key="repl.command.export">extract .sub and convert to Git-friendly XML</message>
   <message key="repl.command.pack">pack XML into .sub</message>
   <message key="repl.command.unpack">extract .sub as raw XML only</message>
-  <message key="repl.command.tree">show registered submarines</message>
+  <message key="repl.command.tree">recursively search and show all submarines in the repository</message>
   <message key="repl.command.exit">quit interactive mode</message>
   <message key="repl.hint">Tab complete · ↑↓ history · Ctrl-R search · Ctrl-D quit · ? help</message>
   <message key="repl.help"><![CDATA[<title>tree</title>

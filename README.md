@@ -11,7 +11,7 @@
 > - [ ] 我希望能集成一个Git GUI到游戏中, 并直接在潜艇编辑器中可视化不同版本潜艇的差异, 但我不熟悉这个游戏的接口, 也不会C#/Lua, 如果有感兴趣的大佬可以试试.
 > - [x] 自动初始化工作区 `git4subeditor init`, 自动添加 `.gitignore` 等
 > - [x] 多语言
-> - [ ] agent skill, 让 ai 根据 `git diff` 拟定提交说明
+> - [ ] agent skill, 让 ai 根据 `git diff` 拟定提交说明等
 > - [x] 历史记录
 > - [x] Tab 补全
 
@@ -24,7 +24,9 @@
 
 1. `.sub` 实际上是 gzip 压缩的单个 `xml` 文件. 直接提交 `.sub` 时, Git 只能看到二进制文件发生了变化, 无法审查具体改动.
 2. 解压后的 `xml` 中, 潜艇预览图是以源码的形式存放在根节点的 `previewimage` 属性里, 往往会让第一行长达几十万字符. 只要改动附近的内容(例如每次改动潜艇, 同一行`checkval`的值都会变化), 就会产生巨大的单行 diff.
-3. 此外在 `xml` 中, 由于游戏内部把一些属性当作无序集合保存, 而每次保存潜艇, 这些值的顺序都可能变化, 导致大量无意义 diff.
+    > `checkval` 是潜艇保存时写入的随机整数, 用于多人战役校验潜艇文件; 本工具不会修改它, 因此每次在游戏中保存后, 根节点仍会出现一行 `checkval` 变化.
+1. 此外在 `xml` 中, 由于游戏内部把一些属性当作无序集合保存, 而每次保存潜艇, 这些值的顺序都可能变化, 导致大量无意义 diff.
+
 
 ## 该程序做了什么
 将潜艇 `.sub` 文件解压并转成 Git 友好的 `xml` 文件, 也支持将 `xml` 打包成 `.sub`
@@ -107,7 +109,7 @@ git4subeditor init
     <submarine name="自定义名称" path="../../test/Git test.sub" preview="../../test/Git test.png" hash="..." />
     <submarine path="../Git test2.sub" preview="../Git test2.png" hash="..." />
     <submarine path="Git test3.sub" preview="Git test3.png" hash="..." />
-    <submarine path="tttt/Git test3.sub" preview="tttt/Git test3.png" hash="..." />
+    <submarine path="tttt/Git test3.sub" preview="tttt/Git test4.png" hash="..." />
   </submarines>
 </git4subeditor>
 ```
@@ -146,7 +148,7 @@ CWD: path_to/current_work_directory
 
 命令:
   init                        初始化/更新工作区
-  tree                        显示已注册潜艇
+  tree                        递归搜索并显示仓库下所有潜艇
   export <file.sub> [-o DIR]  解压 .sub 并转为 Git 友好的 XML
   pack <file.xml> [-o FILE]   打包 XML 为 .sub
   unpack <file.sub> [-o DIR]  仅解压 .sub 为原始 XML
@@ -202,13 +204,4 @@ pack "test.xml"
 # CLI 模式
 git4subeditor pack "test.xml"
 ```
-如果 `test.sub` 已存在, 会先备份为: `test.sub.bak` (给你一个后悔的机会), 然后覆盖写入新的 `test.sub`
-
----
-
-## 注意事项
-
-- `checkval` 是游戏保存时写入的随机整数, 用于多人战役校验潜艇文件; 本工具不会
-  修改它, 因此每次在游戏中保存后, 根节点仍会出现一行 `checkval` 变化.
-- 如果你打算将此程序应用于你正在开发的项目, 请先进行**备份**
-- 重新打包后建议进入游戏编辑器打开一次, 确认潜艇可以正常加载.
+如果 `test.sub` 已存在, 会先备份为: `test.sub.bak` (给你一个后悔的机会), 然后覆盖写入新的 `test.sub`.
