@@ -130,7 +130,13 @@ def _split_path_text(path_text: str) -> list[str]:
 
 def _relative_display(path: Path) -> str:
     """Return a path relative to the current directory in POSIX form."""
-    relative: Path = path.resolve().relative_to(Path.cwd().resolve(), walk_up=True)
+    try:
+        relative: Path = path.resolve().relative_to(
+            Path.cwd().resolve(),
+            walk_up=True,
+        )
+    except ValueError:
+        return str(path)
     return relative.as_posix()
 
 
@@ -138,6 +144,36 @@ def _file_hash(path: Path) -> str:
     """Return the SHA-256 hex digest of a file."""
     with path.open("rb") as handle:
         return hashlib.file_digest(handle, "sha256").hexdigest()
+
+
+def refresh_submarine_hashes(submarines: tuple[SubmarineEntry, ...]) -> bool:
+    """Refresh stored hashes for successfully exported submarine entries.
+
+    Args:
+        submarines: Exported entries containing their refreshed hashes.
+
+    Returns:
+        Whether ``git4subeditor.xml`` was rewritten.
+
+    Raises:
+        SubFileError: If the project configuration cannot be read or parsed.
+    """
+    root: ET.Element | None = read_config_root()
+    if root is None:
+        return False
+    hashes: dict[str, str] = {
+        entry.path: entry.hash for entry in submarines if entry.hash is not None
+    }
+    changed: bool = False
+    for child in root.findall("./submarines/submarine"):
+        path_text: str = (child.get("path") or "").strip()
+        new_hash: str | None = hashes.get(path_text)
+        if new_hash is not None and child.get("hash") != new_hash:
+            child.set("hash", new_hash)
+            changed = True
+    if changed:
+        _write_project_config(Path.cwd() / "git4subeditor.xml", root)
+    return changed
 
 
 def _status_suffix(status: str | None) -> str:
@@ -164,31 +200,21 @@ def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
     workspace_root: Path = Path.cwd()
     root_path: Path = workspace_root / root_label
     root_path_resolved: Path = root_path.resolve()
-    registered: dict[Path, SubmarineEntry] = {
-        (workspace_root / submarine.path).resolve(): submarine
-        for submarine in info.submarines
-    }
+    registered = {entry.path: entry for entry in info.submarines}
+    scanned_entries, unregistered, modified, _ = _detect_submarines(
+        read_config_root(),
+        root_path_resolved,
+        workspace_root,
+    )
+    unregistered_paths: set[str] = {entry.path for entry in unregistered}
+    modified_paths: set[str] = {entry.path for entry in modified}
     listed: list[tuple[SubmarineEntry, str | None]] = []
-    for path in sorted(
-        (
-            candidate
-            for candidate in root_path.rglob("*")
-            if candidate.is_file() and candidate.suffix.lower() == ".sub"
-        ),
-        key=lambda candidate: candidate.as_posix().casefold(),
-    ):
-        if ".git" in path.parts:
-            continue
-        resolved: Path = path.resolve()
-        entry: SubmarineEntry | None = registered.get(resolved)
+    for scanned in scanned_entries:
+        entry: SubmarineEntry = registered.get(scanned.path) or scanned
         status: str | None = None
-        if entry is None:
+        if scanned.path in unregistered_paths:
             status = "U"
-            entry = SubmarineEntry(
-                name=path.stem,
-                path=_relative_display(resolved),
-            )
-        elif entry.hash is not None and _file_hash(path) != entry.hash:
+        elif scanned.path in modified_paths:
             status = "M"
         listed.append((entry, status))
 
@@ -516,8 +542,9 @@ def _detect_submarines(
     tuple[SubmarineEntry, ...],
     tuple[SubmarineEntry, ...],
     tuple[SubmarineEntry, ...],
+    tuple[SubmarineEntry, ...],
 ]:
-    """Return scanned submarine files and pending registry changes.
+    """Return scanned submarine files and registry differences.
 
     Files inside ``.git`` directories are ignored. Paths are relative to the
     workspace directory and always use ``/`` separators. Every scanned entry
@@ -532,9 +559,9 @@ def _detect_submarines(
             paths.
 
     Returns:
-        All submarine entries found below the repository root, the subset that
-        is new or whose hash differs from the configuration, and registered
-        entries whose paths are no longer present.
+        All scanned submarine entries, unregistered entries, registered
+        entries whose hash changed, and registered entries whose paths are no
+        longer present.
     """
     entries: list[SubmarineEntry] = []
     if repository_root is not None:
@@ -570,13 +597,14 @@ def _detect_submarines(
                 hash=(child.get("hash") or "").strip() or None,
             )
 
-    pending: list[SubmarineEntry] = []
+    unregistered: list[SubmarineEntry] = []
+    modified: list[SubmarineEntry] = []
     for entry in entries:
         old: SubmarineEntry | None = registered.get(entry.path)
         if old is None:
-            pending.append(entry)
+            unregistered.append(entry)
         elif old.hash != entry.hash:
-            pending.append(
+            modified.append(
                 SubmarineEntry(
                     name=old.name,
                     path=entry.path,
@@ -586,10 +614,10 @@ def _detect_submarines(
             )
 
     scanned_paths: set[str] = {entry.path for entry in entries}
-    removed: tuple[SubmarineEntry, ...] = tuple(
+    missing: tuple[SubmarineEntry, ...] = tuple(
         entry for path, entry in registered.items() if path not in scanned_paths
     )
-    return tuple(entries), tuple(pending), removed
+    return tuple(entries), tuple(unregistered), tuple(modified), missing
 
 
 def _confirm_submarine_update(
@@ -649,7 +677,10 @@ def _create_project_config(
         _set_config_value(root, "gitRepo", repository_path)
         _set_config_value(root, "modRoot", mod_root_path)
         _set_config_value(root, "version", __version__)
-        submarines, pending, _ = _detect_submarines(None, repository_root, base)
+        submarines, unregistered, modified, _ = _detect_submarines(
+            None, repository_root, base
+        )
+        pending: tuple[SubmarineEntry, ...] = (*unregistered, *modified)
         update_submarines: bool = _confirm_submarine_update(
             confirm_submarines, root, pending
         )
@@ -667,7 +698,10 @@ def _create_project_config(
     except ET.ParseError as exc:
         raise InitializeError(t("err.invalid_config", path=path, error=exc)) from exc
 
-    submarines, pending, removed = _detect_submarines(root, repository_root, base)
+    submarines, unregistered, modified, removed = _detect_submarines(
+        root, repository_root, base
+    )
+    pending: tuple[SubmarineEntry, ...] = (*unregistered, *modified)
     update_submarines = _confirm_submarine_update(
         confirm_submarines,
         root,

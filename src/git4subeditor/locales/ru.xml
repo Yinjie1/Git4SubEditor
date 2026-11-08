@@ -47,7 +47,11 @@
   <message key="prompt.remove_submarines">Удалить эти записи подводных лодок? [y/N] </message>
   <message key="prompt.mod_root_changed">Корень мода: {old} -> {new}. Обновить? [y/N] </message>
   <message key="prompt.git_repo_changed">Git-репозиторий: {old} -> {new}. Обновить? [y/N] </message>
+  <message key="prompt.export_changed">Экспортировать эти подводные лодки? [y/N] </message>
   <message key="status.skipped">пропущено: {path}</message>
+  <message key="status.no_changed_submarines">нет изменённых зарегистрированных подводных лодок</message>
+  <message key="status.export_changed_header">Зарегистрированные подводные лодки с изменениями:</message>
+  <message key="status.export_declined">экспорт отменён</message>
   <message key="status.export_preview">{src} -> {xml}, предпросмотр: {preview}</message>
   <message key="status.export_no_preview">{src} -> {xml}, без предпросмотра</message>
   <message key="status.pack">{src} -> {dst}</message>

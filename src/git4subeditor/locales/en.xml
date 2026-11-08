@@ -47,7 +47,11 @@
   <message key="prompt.remove_submarines">Remove these submarine entries? [y/N] </message>
   <message key="prompt.mod_root_changed">MOD root: {old} -> {new}. Update? [y/N] </message>
   <message key="prompt.git_repo_changed">Git repo: {old} -> {new}. Update? [y/N] </message>
+  <message key="prompt.export_changed">Export these submarines? [y/N] </message>
   <message key="status.skipped">skipped: {path}</message>
+  <message key="status.no_changed_submarines">no changed registered submarines</message>
+  <message key="status.export_changed_header">Registered submarines with changes:</message>
+  <message key="status.export_declined">export cancelled</message>
   <message key="status.export_preview">{src} -> {xml}, preview: {preview}</message>
   <message key="status.export_no_preview">{src} -> {xml}, no preview</message>
   <message key="status.pack">{src} -> {dst}</message>

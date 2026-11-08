@@ -47,7 +47,11 @@
   <message key="prompt.remove_submarines">是否移除这些潜艇? [y/N] </message>
   <message key="prompt.mod_root_changed">MOD 根目录: {old} -> {new}, 是否更新? [y/N] </message>
   <message key="prompt.git_repo_changed">Git 仓库: {old} -> {new}, 是否更新? [y/N] </message>
+  <message key="prompt.export_changed">是否导出这些潜艇? [y/N] </message>
   <message key="status.skipped">已跳过: {path}</message>
+  <message key="status.no_changed_submarines">没有已改动的注册潜艇</message>
+  <message key="status.export_changed_header">已改动的已注册潜艇:</message>
+  <message key="status.export_declined">已取消导出</message>
   <message key="status.export_preview">{src} -> {xml}, 预览图: {preview}</message>
   <message key="status.export_no_preview">{src} -> {xml}, 无预览图</message>
   <message key="status.pack">{src} -> {dst}</message>

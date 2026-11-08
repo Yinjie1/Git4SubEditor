@@ -23,10 +23,13 @@ from git4subeditor.workspace import (
     IGNORE_PATTERNS,
     InitializeError,
     SubmarineEntry,
+    _detect_submarines,
+    _relative_display,
     initialize_project,
     load_workspace_info,
     print_submarine_paths,
     read_config_root,
+    refresh_submarine_hashes,
 )
 
 
@@ -121,7 +124,12 @@ def build_parser() -> argparse.ArgumentParser:
         "export",
         help=t("command.export"),
     )
-    _add_inputs(export, t("arg.inputs.sub"))
+    export.add_argument(
+        "inputs",
+        nargs="*",
+        type=Path,
+        help=t("arg.inputs.sub"),
+    )
     export.add_argument(
         "-o",
         "--output-dir",
@@ -512,6 +520,47 @@ def _run_command(
             print(format_message(str(exc), label="error"), file=sys.stderr)
             return 1
 
+    auto_export: bool = False
+    if args.command == "export" and not args.inputs:
+        try:
+            info = load_workspace_info()
+        except SubFileError as exc:
+            print(format_message(str(exc), label="error"), file=sys.stderr)
+            return 1
+        if info is None:
+            print(
+                format_message(t("repl.workspace_missing"), label="error"),
+                file=sys.stderr,
+            )
+            return 1
+        repository_root: Path = (Path.cwd() / (info.git_repo or ".")).resolve()
+        modified = _detect_submarines(
+            read_config_root(),
+            repository_root,
+            Path.cwd(),
+        )[2]
+        registered = {entry.path: entry for entry in info.submarines}
+        targets = tuple(
+            entry for entry in modified if registered[entry.path].hash is not None
+        )
+        if not targets:
+            print(t("status.no_changed_submarines"))
+            return 0
+        print(t("status.export_changed_header"))
+        for entry in targets:
+            print(f"  {entry.name}: {entry.path}")
+        if not args.force:
+            try:
+                answer: str = input(t("prompt.export_changed"))
+            except EOFError:
+                print()
+                return 0
+            if answer.strip().casefold() != "y":
+                print(t("status.export_declined"))
+                return 0
+        args.inputs = [Path.cwd() / entry.path for entry in targets]
+        auto_export = True
+
     errors: int = 0
     for src in args.inputs:
         try:
@@ -526,14 +575,19 @@ def _run_command(
                 )
             elif args.command == "export":
                 _require_registered(src, registry)
-                force: bool = args.force
+                force: bool = args.force or auto_export
                 target_dir: Path = (
                     args.output_dir if args.output_dir is not None else src.parent
                 )
                 xml_path: Path = target_dir / f"{src.stem}.xml"
                 if not force and xml_path.exists():
                     if not _confirm_overwrite(xml_path):
-                        print(t("status.skipped", path=xml_path))
+                        print(
+                            t(
+                                "status.skipped",
+                                path=_relative_display(xml_path),
+                            )
+                        )
                         continue
                     force = True
                 result = export_sub(
@@ -546,17 +600,17 @@ def _run_command(
                     print(
                         t(
                             "status.export_preview",
-                            src=src.name,
-                            xml=result.xml_path,
-                            preview=result.preview_path.name,
+                            src=_relative_display(src),
+                            xml=_relative_display(result.xml_path),
+                            preview=_relative_display(result.preview_path),
                         )
                     )
                 else:
                     print(
                         t(
                             "status.export_no_preview",
-                            src=src.name,
-                            xml=result.xml_path,
+                            src=_relative_display(src),
+                            xml=_relative_display(result.xml_path),
                         )
                     )
             else:
@@ -568,10 +622,23 @@ def _run_command(
                     preview_override=preview_override,
                     sort_attributes=args.sort_attributes,
                 )
-                print(t("status.pack", src=src.name, dst=dst))
+                print(
+                    t(
+                        "status.pack",
+                        src=_relative_display(src),
+                        dst=_relative_display(dst),
+                    )
+                )
         except SubFileError as exc:
             print(format_message(str(exc), label="error"), file=sys.stderr)
             errors += 1
+
+    if auto_export and not errors:
+        try:
+            refresh_submarine_hashes(targets)
+        except SubFileError as exc:
+            print(format_message(str(exc), label="error"), file=sys.stderr)
+            return 1
 
     return 1 if errors else 0
 
