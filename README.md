@@ -4,7 +4,7 @@
 一个 CLI 工具, 把 Barotrauma 的 `.sub` 潜艇文件转换为适合 Git 版本追踪的文本格式, 也支持将其转回 `.sub` 文件.
 
 > [!warning]
-> 这是一个 Vibe Coding 项目, 我正在对代码进行 review 和测试, 但测试可能并未覆盖所有可能出现的异常; 如果你打算将此程序应用于你正在开发的项目, 请先进行**备份**, 以免发生不可挽回的灾难性事故.
+> 如果你打算将此程序应用于你正在开发的项目, 请先进行**备份**, 以免发生不可挽回的灾难性事故.
 
 > [!note]
 > **后续计划**
@@ -12,8 +12,8 @@
 > - [x] 自动初始化工作区 `git4subeditor init`, 自动添加 `.gitignore` 等
 > - [x] 多语言
 > - [ ] agent skill, 让 ai 根据 `git diff` 拟定提交说明
-> - [ ] 历史记录
-> - [ ] Tab 补全
+> - [x] 历史记录
+> - [x] Tab 补全
 
 ## 为什么需要 Git
 1. Git 的版本控制, 并不是每个版本都备份一个副本, 而是记录两个版本间的 diff, 这样不仅版本仓库体积非常小, 而且可以很方便地看出每次都做了哪些改动. 又或者哪天搞砸了, 也可以回退到之前的任意版本.
@@ -23,7 +23,7 @@
 ## 为什么需要这个工具
 
 1. `.sub` 实际上是 gzip 压缩的单个 `xml` 文件. 直接提交 `.sub` 时, Git 只能看到二进制文件发生了变化, 无法审查具体改动.
-2. 解压后的 `xml` 中, 潜艇预览图是以 Base64 存放在根节点的 `previewimage` 属性里, 往往会让第一行长达几十万字符. 只要改动附近的内容(例如每次改动潜艇, 同一行`checkval`的值都会变化), 就会产生巨大的单行 diff.
+2. 解压后的 `xml` 中, 潜艇预览图是以源码的形式存放在根节点的 `previewimage` 属性里, 往往会让第一行长达几十万字符. 只要改动附近的内容(例如每次改动潜艇, 同一行`checkval`的值都会变化), 就会产生巨大的单行 diff.
 3. 此外在 `xml` 中, 由于游戏内部把一些属性当作无序集合保存, 而每次保存潜艇, 这些值的顺序都可能变化, 导致大量无意义 diff.
 
 ## 该程序做了什么
@@ -38,6 +38,8 @@
    - ContainableRestrictions
    - idcardtags
    - outposttags
+
+---
 
 ## 安装教程 (Windows)
 > [!tip]
@@ -77,31 +79,108 @@ uv tool list
 git4subeditor --version
 ```
 
+---
+
 ## 快速开始
+你的潜艇Mod目录位于`Barotrauma\LocalMods\`中, 可以在游戏内的模组选择界面, 点击你的潜艇Mod右侧的"笔"图标快速打开.  
+运行这个工具需在当前Mod目录或子目录下打开终端(右键目录背景->在终端中打开), 反正必须确保终端的工作目录是在你要修改的Mod的目录.
 ### 1. 初始化工作目录
-你的潜艇Mod目录就是项目工作目录, 位于`Barotrauma\LocalMods\`中, 也可以在游戏内的模组选择界面, 点击你的潜艇Mod右侧的"笔"图标快速打开.  
-首先在目录中新建一个`.gitignore`文件(不要留后缀), 里面填让 Git 忽略的文件, 建议在里面添加这些内容:
+Mod目录中需要有一个 Git 仓库, 如果没有, 可以运行以下命令初始化仓库:
+```bash
+git init
 ```
-# 忽略潜艇二进制文件, 否则版本库会变得很大
-*.sub 
-*.bak
-# 一般没必要追踪图片, 也可能导致版本库变得很大
-*.png
+接着运行以下命令, 初始化 git4subeditor 项目:
+```bash
+git4subeditor init
 ```
-运行这个工具需在当前潜艇Mod目录打开终端(右键目录背景->在终端中打开), 反正必须确保终端的工作目录是在你要修改的Mod的目录
-### 2. sub 转 XML
+此过程会自动生成/修改 `.gitignore` 文件, 确保 Git 忽略追踪 `*.sub`, `*.bak`, `*.png`, `history` 这4种文件, 你也可以手动添加你要忽略的文件.  
+还会生成一个项目配置文件 `git4subeditor.xml`, 里面储存了用户偏好及已注册潜艇信息:
+```xml
+<?xml version='1.0' encoding='utf-8'?>
+<git4subeditor>
+  <projectName>test</projectName>
+  <language>cn</language>
+  <gitRepo>../..</gitRepo>
+  <modRoot>../..</modRoot>
+  <version>0.1.19</version>
+  <submarines>
+    <submarine name="自定义名称" path="../../test/Git test.sub" preview="../../test/Git test.png" hash="..." />
+    <submarine path="../Git test2.sub" preview="../Git test2.png" hash="..." />
+    <submarine path="Git test3.sub" preview="Git test3.png" hash="..." />
+    <submarine path="tttt/Git test3.sub" preview="tttt/Git test3.png" hash="..." />
+  </submarines>
+</git4subeditor>
+```
+### 2. 交互模式
+该程序提供 CLI 模式和交互模式, 前者适合 ai 使用, 后者提供了人类可读的界面, 并且交互逻辑更加简单, 还提供了命令补全和历史记录功能, 运行以下命令启动交互模式:
+```bash
+git4subeditor
+```
+你将会看到如以下的界面
+```
+ ██████╗ ██╗████████╗    ██╗  ██╗    by Yinjie
+██╔════╝ ██║╚══██╔══╝    ██║  ██║    0.1.19
+██║  ███╗██║   ██║       ███████║
+██║   ██║██║   ██║       ╚════██║
+╚██████╔╝██║   ██║            ██║
+ ╚═════╝ ╚═╝   ╚═╝            ╚═╝
+
+███████╗██╗   ██╗██████╗ ███████╗██████╗ ██╗████████╗ ██████╗ ██████╗
+██╔════╝██║   ██║██╔══██╗██╔════╝██╔══██╗██║╚══██╔══╝██╔═══██╗██╔══██╗
+███████╗██║   ██║██████╔╝█████╗  ██║  ██║██║   ██║   ██║   ██║██████╔╝
+╚════██║██║   ██║██╔══██╗██╔══╝  ██║  ██║██║   ██║   ██║   ██║██╔══██╗
+███████║╚██████╔╝██████╔╝███████╗██████╔╝██║   ██║   ╚██████╔╝██║  ██║
+╚══════╝ ╚═════╝ ╚═════╝ ╚══════╝╚═════╝ ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝
+
+项目: test | Git 仓库: ../.. | 模组根目录: ../..
+CWD: path_to/current_work_directory
+../..
+├── ../../test
+│   └── 自定义名称: Git test.sub
+└── ..
+    ├── Git test2: Git test2.sub (M)
+    └── .
+        ├── Git test3: Git test3.sub
+        └── tttt
+            └── Git test4: Git test4.sub (U)
+
+命令:
+  init                        初始化/更新工作区
+  tree                        显示已注册潜艇
+  export <file.sub> [-o DIR]  解压 .sub 并转为 Git 友好的 XML
+  pack <file.xml> [-o FILE]   打包 XML 为 .sub
+  unpack <file.sub> [-o DIR]  仅解压 .sub 为原始 XML
+  q                           退出交互模式
+
+Tab 补全 · ↑↓ 历史 · Ctrl-R 搜索 · Ctrl-D 退出 · ? 帮助
+g4s:test>
+```
+其中的潜艇 `.sub` 文件目录树, 是以 **Git 仓库**所在目录为根目录递归搜索得到的, 目录以相对路径显示. 示例中的目录结构是为了展示刻意制造的, 不建议搞这么复杂.  
+其中未注册潜艇带有红色标识 `(U)`. 已注册潜艇在初始化或 `export` 时, 会自动计算并记录哈希值到 `git4subeditor.xml` 中, 生成目录树时会再次计算哈希, 若潜艇发生改动, 哈希会发生改变, 发生改动的潜艇带有黄色标识 `(M)`.
+### 3. sub 转 XML
 若你的潜艇文件为`test.sub`, 执行命令:
 ```bash
+# 交互模式
+export "test.sub"
+# CLI 模式
 git4subeditor export "test.sub"
 ```
 将会得到2个文件: `test.xml`, `test.png`. 其中`test.xml`就是 Git 要追踪的文件.  
-默认直接输出到输入文件所在目录, 若 `xml` 已存在, 会询问是否覆盖: 输入 `y` 覆盖, 其他任意输入跳过
+如果已经进行项目初始化(即当前目录有 `git4subeditor.xml`), 可通过以下命令自动导出所有发生改动的已注册 `.sub` 文件:
+```bash
+# 交互模式
+export
+# CLI 模式
+git4subeditor export
+```
 
-### 2. 用 Git 管理 XML
+### 4. 用 Git 管理 XML
 > [!tip]
-> 要是实在不会, 就让 ai 帮忙弄, ai 都懂 Git 命令. 像提交, 回退版本, 比较两个版本的差异, 都可以问 ai.
+> 要是实在不会, 就让 ai 帮忙弄, ai 很擅长使用 CLI. 像提交, 回退版本, 比较两个版本的差异, 写提交说明, 都可以问 ai.
 
-关于 Git 的使用, 可以看这个快速入门[教程](https://chriswenchen.github.io/theory-computing-physics-guide/docs/git), 最常用的就几个命令:
+该程序不集成操作 Git 仓库的功能, 因为已经有很多成熟的 Git GUI 工具, 重写一遍不仅工作量大, 而且可能还更难用, bug更多, 把仓库搞坏就麻烦了.  
+对于不熟悉命令行的小白, 可以安装一些集成了 Git GUI 的 IDE, 用以**可视化差异**与**提交**修改. 我建议用 [VSCode](https://code.visualstudio.com/Download) (选System Installer), Git for Windows 也自带了一个 GUI, 但没那么好用.
+关于 Git 的使用, 可以看这个快速入门[教程](https://chriswenchen.github.io/theory-computing-physics-guide/docs/git), 最常用的就几个 CLI 命令:
 ```bash
 # 初始化版本库
 git init
@@ -115,94 +194,21 @@ git status
 git commit -m "这里写提交说明"
 ```
 
-对于不熟悉命令行的小白, 可以安装一些集成了 Git GUI 的 IDE, 如 [VSCode](https://code.visualstudio.com/Download), 来可视化差异与提交修改.
-### 3. XML 转 sub
+### 5. XML 转 sub
 如果要回退版本, 用 Git 把 `xml` 回退到指定的版本, 再用以下命令转成 `.sub`文件:
 ```bash
+# 交互模式
+pack "test.xml"
+# CLI 模式
 git4subeditor pack "test.xml"
 ```
-如果 `test.sub` 已存在, 会先备份为: `test.sub.bak`, 然后覆盖写入新的 `test.sub`
+如果 `test.sub` 已存在, 会先备份为: `test.sub.bak` (给你一个后悔的机会), 然后覆盖写入新的 `test.sub`
 
-## 命令
-
-### init
-
-在当前工作目录创建或更新 `.gitignore`. 
-
-```bash
-git4subeditor init
-```
-
-- 文件不存在时, 新建文件并写入 `*.sub`, `*.bak`, `*.png`. 
-- 文件已存在时, 检查这三项; 缺少的项会追加到文件末尾, 并用
-  `# ===== Git4SubEditor =====` 标记. 
-- 三项都已忽略时, 不修改文件. 
-
-### export
-
-把 `.sub` 导出为同名 XML 和预览图. 
-
-```bash
-git4subeditor export "test.sub"
-git4subeditor export *.sub -o exported
-```
-
-如果同名 XML 已存在, 默认会询问是否覆盖. 输入 `y` 表示覆盖, 输入其他任意内容
-表示跳过当前文件. 使用 `--force` 时不询问, 直接覆盖.
-
-| 参数 | 说明 |
-| --- | --- |
-| `-o, --output-dir` | 输出目录, 默认与输入文件同目录 |
-| `--sort-attributes` | 按字母顺序排列 XML 属性本身；Tags、items 等集合值始终排序 |
-| `-f, --force` | 跳过覆盖询问, 直接覆盖已存在的 XML 或预览图 |
-
-### pack
-
-把导出的 XML 重新打包为 `.sub`. 
-
-- 读取根节点 `preview` 属性指向的相对路径. 
-- 如果目标 `.sub` 已存在, 先复制为 `<目标>.bak`, 再写入新文件. 
-
-```bash
-git4subeditor pack "test.xml"
-git4subeditor pack "test.xml" -o "test.sub"
-```
-
-| 参数 | 说明 |
-| --- | --- |
-| `-o, --output` | 输出 `.sub` 文件, 或一个已存在的目录; 默认与 XML 同目录 |
-| `--sort-attributes` | 打包前按字母顺序排列 XML 属性 |
-
-### unpack
-
-提取原始 XML, 不做规范化, 也不拆预览图. 适合调试或查看原始内容. 
-
-```bash
-git4subeditor unpack "test.sub"
-git4subeditor unpack "test.sub" -o extracted --force
-git4subeditor unpack "test.sub" --stdout
-```
-
-| 参数 | 说明 |
-| --- | --- |
-| `-o, --output-dir` | 输出目录, 默认与输入文件同目录 |
-| `--encoding` | 强制指定 XML 编码, 默认自动检测 UTF-8 / UTF-16 |
-| `--stdout` | 把 XML 输出到标准输出, 不写文件 |
-| `--no-validate` | 跳过 XML 合法性检查 |
-| `-f, --force` | 覆盖已存在的输出文件 |
-
-必须显式指定子命令, 例如 `git4subeditor unpack "test.sub"`. 直接传入文件名会
-报参数错误. 
+---
 
 ## 注意事项
 
 - `checkval` 是游戏保存时写入的随机整数, 用于多人战役校验潜艇文件; 本工具不会
-  修改它, 因此每次在游戏中保存后, 根节点仍会出现一行 `checkval` 变化. 
-- 游戏内部把 `Tags`, `requireditem` 的 `items` 等属性保存为无序集合, 重新保存时
-  可能整体换序. `export` 和 `pack` 会自动按字母排序这些集合值, 避免无意义的
-  全文件 diff. 首次使用新版本重新导出时, 可能产生一次集合排序 diff. 
-- `preview` 是相对 XML 所在目录的路径. 移动或重命名 XML 时, 请一起移动或重命名
-  预览图, 并同步修改 `preview` 属性. 
-- 如果 `preview` 指向的图片不存在, `pack` 会输出警告并省略预览图, 不会搜索
-  其他图片. 
+  修改它, 因此每次在游戏中保存后, 根节点仍会出现一行 `checkval` 变化.
+- 如果你打算将此程序应用于你正在开发的项目, 请先进行**备份**
 - 重新打包后建议进入游戏编辑器打开一次, 确认潜艇可以正常加载.
