@@ -1,6 +1,7 @@
 """Interactive command loop for git4subeditor."""
 
 import argparse
+import re
 import shlex
 import shutil
 import sys
@@ -20,6 +21,17 @@ from git4subeditor.workspace import (
 )
 
 _COMMANDS: tuple[str, ...] = ("init", "export", "pack", "unpack", "tree", "q")
+_HELP_TAG = re.compile(r"<(title|cmd)>(.*?)</\1>")
+
+
+def _render_help(text: str) -> str:
+    """Colorize help document markers."""
+
+    def replace(match: re.Match[str]) -> str:
+        color: str = "light_blue" if match.group(1) == "title" else "green"
+        return format_message(match.group(2), color=color)
+
+    return _HELP_TAG.sub(replace, text)
 
 
 class _SummaryFormatter(argparse.HelpFormatter):
@@ -40,10 +52,10 @@ def _print_command_list() -> None:
     """Print the interactive command list in argparse style."""
     commands: tuple[tuple[str, str], ...] = (
         ("init", t("repl.command.init")),
+        ("tree", t("repl.command.tree")),
         ("export <file.sub> [-o DIR]", t("repl.command.export")),
         ("pack <file.xml> [-o FILE]", t("repl.command.pack")),
         ("unpack <file.sub> [-o DIR]", t("repl.command.unpack")),
-        ("tree", t("repl.command.tree")),
         ("q", t("repl.command.exit")),
     )
     columns: int = shutil.get_terminal_size(fallback=(80, 24)).columns
@@ -212,7 +224,7 @@ def run() -> int:
         if name == "q":
             return 0
         if name == "?":
-            print(t("repl.help"), end="")
+            print(_render_help(t("repl.help")), end="")
             continue
         if name == "tree":
             if workspace is None:
