@@ -14,7 +14,7 @@
   <message key="repl.command.unpack">仅解压 .sub 为原始 XML</message>
   <message key="repl.command.tree">显示已注册潜艇</message>
   <message key="repl.command.exit">退出交互模式</message>
-  <message key="repl.hint">输入 'q' 退出.</message>
+  <message key="repl.hint">Tab 补全 · ↑↓ 历史 · Ctrl-R 搜索 · Ctrl-D 退出 · ? 帮助</message>
   <message key="repl.not_tty">交互模式需要终端; 请使用子命令</message>
   <message key="repl.parse_error">无法解析命令行: {error}</message>
   <message key="repl.workspace_missing">尚未初始化工作区</message>
