@@ -42,7 +42,7 @@ def _print_command_list() -> None:
         ("pack <file.xml> [-o FILE]", t("repl.command.pack")),
         ("unpack <file.sub> [-o DIR]", t("repl.command.unpack")),
         ("tree", t("repl.command.tree")),
-        ("exit", t("repl.command.exit")),
+        ("q", t("repl.command.exit")),
     )
     columns: int = shutil.get_terminal_size(fallback=(80, 24)).columns
     max_command: int = max(len(syntax) for syntax, _ in commands)
@@ -185,7 +185,7 @@ def run() -> int:
             continue
 
         name: str = tokens[0].casefold()
-        if name in {"exit", "quit", "q"}:
+        if name == "q":
             return 0
         if name == "tree":
             if workspace is None:
