@@ -19,6 +19,8 @@ from git4subeditor.workspace import (
     print_submarine_paths,
 )
 
+_COMMANDS: tuple[str, ...] = ("init", "export", "pack", "unpack", "tree", "q")
+
 
 class _SummaryFormatter(argparse.HelpFormatter):
     """Use the usage color for positional command names."""
@@ -152,12 +154,34 @@ def run() -> int:
     ansi: Any = None
     try:
         from prompt_toolkit import PromptSession
+        from prompt_toolkit.completion import Completer, Completion
         from prompt_toolkit.formatted_text import ANSI
         from prompt_toolkit.history import FileHistory
     except ImportError:
         pass
     else:
-        session = PromptSession(history=FileHistory(str(Path.cwd() / "history")))
+
+        class _CommandCompleter(Completer):
+            """Complete REPL command names."""
+
+            def get_completions(
+                self,
+                document: Any,
+                complete_event: Any,
+            ) -> Any:
+                """Yield completions for the first token."""
+                text: str = document.text_before_cursor
+                if " " in text:
+                    return
+                for command in _COMMANDS:
+                    if command.startswith(text):
+                        yield Completion(command, start_position=-len(text))
+
+        session = PromptSession(
+            history=FileHistory(str(Path.cwd() / "history")),
+            completer=_CommandCompleter(),
+            complete_while_typing=False,
+        )
         ansi = ANSI
 
     while True:
