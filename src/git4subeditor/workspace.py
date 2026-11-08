@@ -291,7 +291,7 @@ def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
     print_children(entries, "", root_path)
 
 
-IGNORE_PATTERNS: tuple[str, ...] = ("*.sub", "*.bak", "*.png")
+IGNORE_PATTERNS: tuple[str, ...] = ("*.sub", "*.bak", "*.png", "history")
 
 
 class InitializeError(Exception):
@@ -409,7 +409,7 @@ def initialize_project(
         >>> result.gitignore_created
         True
         >>> result.added
-        ('*.sub', '*.bak', '*.png')
+        ('*.sub', '*.bak', '*.png', 'history')
     """
     base: Path = directory if directory is not None else Path.cwd()
     mod_root: Path = _find_mod_root(base)
