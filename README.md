@@ -52,22 +52,12 @@
 
 ### 1. 安装 Git for Windows
 直接到 Git [官网](https://git-scm.com/install/windows)上下载
-### 2. 安装 Python 环境(可选)
-安装包管理工具 [uv](https://docs.astral.sh/uv/), 打开 CMD/PowerShell:
+### 2. 安装 Python 包管理器
+建议使用包管理器 [uv](https://docs.astral.sh/uv/), 打开 CMD/PowerShell:
 ```bash
 winget install uv
 # 检查是否安装成功
 uv --version
-```
-uv 默认把解释器/包/工具都装在C盘, 如果想改安装目录, 可以改环境变量`UV_CACHE_DIR`, `UV_PYTHON_INSTALL_DIR`, `UV_TOOL_BIN_DIR`, `UV_TOOL_DIR`, 运行以下命令检查是否修改成功:
-```bash
-uv python dir
-uv cache dir
-uv tool dir
-```
-运行以下命令并重启终端, 来把`UV_TOOL_BIN_DIR`添加到PATH:
-```bash
-uv tool update-shell
 ```
 安装一个 Python 解释器:
 ```bash
@@ -75,13 +65,21 @@ uv tool update-shell
 uv python install 3.15
 ```
 ### 3. 安装 Git4SubEditor
-从 GitHub 安装到 uv 的独立工具环境, 不会污染 Python 全局环境:
-
+运行以下命令进行安装:
 ```bash
-uv tool install "git4subeditor @ git+https://github.com/Yinjie1/Git4SubEditor.git"
+uv tool install git4subeditor
 # 检查是否安装成功
 uv tool list
 git4subeditor --version
+```
+如果提示找不到命令, 运行以下命令并重启终端后再次尝试:
+```bash
+uv tool update-shell
+```
+升级和卸载:
+```bash
+uv tool upgrade git4subeditor
+uv tool uninstall git4subeditor
 ```
 
 ---
