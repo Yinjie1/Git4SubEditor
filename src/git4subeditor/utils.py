@@ -131,7 +131,16 @@ def open_path(path: Path) -> None:
         path: File to open.
     """
     if sys.platform == "win32":
-        os.startfile(path)  # type: ignore[attr-defined]
+        # A detached launcher keeps the opened application from sharing the
+        # console, so it cannot move the cursor of the interactive prompt.
+        subprocess.Popen(
+            ["cmd", "/c", "start", "", str(path)],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=subprocess.DETACHED_PROCESS,
+            close_fds=True,
+        )
     elif sys.platform == "darwin":
         subprocess.Popen(["open", str(path)])
     else:

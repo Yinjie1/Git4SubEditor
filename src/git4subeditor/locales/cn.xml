@@ -142,5 +142,4 @@
   <message key="command.setting">打开工作区配置文件</message>
   <message key="err.config_missing">找不到配置文件: {path}</message>
   <message key="err.open_config">无法打开配置文件 {path}: {error}</message>
-  <message key="status.config_opened">已打开 {path}</message>
 </locale>

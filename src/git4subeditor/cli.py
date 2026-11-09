@@ -427,7 +427,6 @@ def _run_command(
                 file=sys.stderr,
             )
             return 1
-        print(t("status.config_opened", path=_relative_display(path)))
         return 0
 
     if args.command == "sub":

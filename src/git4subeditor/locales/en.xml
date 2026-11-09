@@ -144,5 +144,4 @@
   <message key="command.setting">open the workspace configuration file</message>
   <message key="err.config_missing">configuration file not found: {path}</message>
   <message key="err.open_config">cannot open configuration file {path}: {error}</message>
-  <message key="status.config_opened">opened {path}</message>
 </locale>

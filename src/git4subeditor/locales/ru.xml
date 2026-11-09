@@ -144,5 +144,4 @@
   <message key="command.setting">открыть файл конфигурации рабочей папки</message>
   <message key="err.config_missing">файл конфигурации не найден: {path}</message>
   <message key="err.open_config">не удалось открыть файл конфигурации {path}: {error}</message>
-  <message key="status.config_opened">открыт {path}</message>
 </locale>
