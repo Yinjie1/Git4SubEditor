@@ -18,7 +18,7 @@ from git4subeditor.l10n import (
     t,
 )
 from git4subeditor.subfile import SubFileError, unpack_sub
-from git4subeditor.utils import format_message, print_banner
+from git4subeditor.utils import format_message, open_path, print_banner
 from git4subeditor.workspace import (
     IGNORE_PATTERNS,
     InitializeError,
@@ -89,6 +89,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--tree",
         action="store_true",
         help=t("arg.tree"),
+    )
+
+    subparsers.add_parser(
+        "setting",
+        help=t("command.setting"),
     )
 
     unpack = subparsers.add_parser(
@@ -403,6 +408,27 @@ def _run_command(
     Returns:
         Process exit code: 0 on success, 1 if any input failed, 2 on bad usage.
     """
+    if args.command == "setting":
+        path: Path = Path.cwd() / "git4subeditor.xml"
+        if not path.exists():
+            print(
+                format_message(t("err.config_missing", path=path), label="error"),
+                file=sys.stderr,
+            )
+            return 1
+        try:
+            open_path(path)
+        except OSError as exc:
+            print(
+                format_message(
+                    t("err.open_config", path=path, error=exc),
+                    label="error",
+                ),
+                file=sys.stderr,
+            )
+            return 1
+        return 0
+
     if args.command == "sub":
         try:
             info = load_workspace_info()

@@ -20,7 +20,14 @@ from git4subeditor.workspace import (
     print_submarine_paths,
 )
 
-_COMMANDS: tuple[str, ...] = ("init", "export", "pack", "unpack", "tree", "q")
+_COMMANDS: tuple[str, ...] = (
+    "init",
+    "export",
+    "pack",
+    "unpack",
+    "tree",
+    "setting",
+)
 _HELP_TAG = re.compile(r"<(title|cmd)>(.*?)</\1>")
 
 
@@ -56,7 +63,7 @@ def _print_command_list() -> None:
         ("export <file.sub> [-o DIR]", t("repl.command.export")),
         ("pack <file.xml> [-o FILE]", t("repl.command.pack")),
         ("unpack <file.sub> [-o DIR]", t("repl.command.unpack")),
-        ("q", t("repl.command.exit")),
+        ("setting", t("repl.command.setting")),
     )
     columns: int = shutil.get_terminal_size(fallback=(80, 24)).columns
     max_command: int = max(len(syntax) for syntax, _ in commands)
@@ -238,8 +245,6 @@ def run() -> int:
             continue
 
         name: str = tokens[0].casefold()
-        if name == "q":
-            return 0
         if name == "?":
             print(_render_help(t("repl.help")), end="")
             continue

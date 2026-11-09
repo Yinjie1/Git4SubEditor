@@ -2,7 +2,9 @@
 
 import os
 import shutil
+import subprocess
 import sys
+from pathlib import Path
 from typing import TextIO
 
 _COLORS: dict[str, str] = {
@@ -120,3 +122,17 @@ def _supports_color(stream: TextIO | None) -> bool:
         return stream.isatty()
     except AttributeError:
         return False
+
+
+def open_path(path: Path) -> None:
+    """Open a file with the default application.
+
+    Args:
+        path: File to open.
+    """
+    if sys.platform == "win32":
+        os.startfile(path)  # type: ignore[attr-defined]
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", str(path)])
+    else:
+        subprocess.Popen(["xdg-open", str(path)])

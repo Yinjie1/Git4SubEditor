@@ -13,7 +13,7 @@
   <message key="repl.command.pack">pack XML into .sub</message>
   <message key="repl.command.unpack">extract .sub as raw XML only</message>
   <message key="repl.command.tree">recursively search and show all submarines in the repository</message>
-  <message key="repl.command.exit">quit interactive mode</message>
+  <message key="repl.command.setting">open workspace configuration</message>
   <message key="repl.hint">Tab complete · ↑↓ history · Ctrl-R search · Ctrl-D quit · ? help</message>
   <message key="repl.help"><![CDATA[<title>tree</title>
   Show submarine .sub files in the Git repository as a directory tree.
@@ -141,4 +141,7 @@
   <message key="err.pack_xml_ambiguous">XML path is recorded for multiple submarines: {paths}</message>
   <message key="warning.pack_duplicate_name">output directory {path} is not a registered submarine directory; this may create duplicate .sub files</message>
   <message key="warning.duplicate_registered">multiple registered submarines share a name:&#10;{paths}</message>
+  <message key="command.setting">open the workspace configuration file</message>
+  <message key="err.config_missing">configuration file not found: {path}</message>
+  <message key="err.open_config">cannot open configuration file {path}: {error}</message>
 </locale>

@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "git4subeditor"
-version = "0.1.26"
+version = "0.1.27"
 description = "Convert Barotrauma .sub files into a text format suitable for Git version tracking"
 readme = "README.md"
 requires-python = ">=3.13"
