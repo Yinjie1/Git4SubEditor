@@ -638,19 +638,26 @@ def _detect_submarines(
 
 def _duplicate_name_groups(
     entries: tuple[SubmarineEntry, ...],
+    pending_paths: set[str],
 ) -> tuple[tuple[SubmarineEntry, ...], ...]:
-    """Group scanned submarines by case-insensitive file stem.
+    """Group scanned submarines that include a pending path by stem.
 
     Args:
         entries: Scanned submarine entries in scan order.
+        pending_paths: Paths that are new or changed in this scan.
 
     Returns:
-        Groups containing more than one entry, preserving scan order.
+        Duplicate groups containing at least one pending path, preserving
+        scan order.
     """
     groups: dict[str, list[SubmarineEntry]] = {}
     for entry in entries:
         groups.setdefault(Path(entry.path).stem.casefold(), []).append(entry)
-    return tuple(tuple(group) for group in groups.values() if len(group) > 1)
+    return tuple(
+        tuple(group)
+        for group in groups.values()
+        if len(group) > 1 and any(entry.path in pending_paths for entry in group)
+    )
 
 
 def _confirm_submarine_update(
@@ -714,8 +721,9 @@ def _create_project_config(
         submarines, unregistered, modified, _ = _detect_submarines(
             None, repository_root, base
         )
+        unregistered_paths: set[str] = {entry.path for entry in unregistered}
         duplicate_groups: tuple[tuple[SubmarineEntry, ...], ...] = (
-            _duplicate_name_groups(submarines)
+            _duplicate_name_groups(submarines, unregistered_paths)
         )
         duplicates_confirmed: bool = (
             confirm_duplicates is None
@@ -743,7 +751,8 @@ def _create_project_config(
     submarines, unregistered, modified, removed = _detect_submarines(
         root, repository_root, base
     )
-    duplicate_groups = _duplicate_name_groups(submarines)
+    unregistered_paths: set[str] = {entry.path for entry in unregistered}
+    duplicate_groups = _duplicate_name_groups(submarines, unregistered_paths)
     duplicates_confirmed = (
         confirm_duplicates is None
         or not duplicate_groups
