@@ -140,4 +140,5 @@
   <message key="err.invalid_decompressed_xml">распакованные данные не являются допустимым XML: {error}</message>
   <message key="err.pack_xml_ambiguous">этот XML-путь указан для нескольких подводных лодок: {paths}</message>
   <message key="warning.pack_duplicate_name">выходной каталог {path} не является каталогом зарегистрированной подводной лодки; это может создать несколько .sub файлов с одинаковым именем</message>
+  <message key="warning.duplicate_registered">несколько зарегистрированных подводных лодок имеют одинаковое имя:&#10;{paths}</message>
 </locale>

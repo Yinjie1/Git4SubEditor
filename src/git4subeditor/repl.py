@@ -106,6 +106,23 @@ def _print_workspace_info(info: WorkspaceInfo | None) -> None:
     print(t("repl.cwd", path=Path.cwd().resolve()))
     print_submarine_paths(info)
 
+    groups: dict[str, list[str]] = {}
+    for submarine in info.submarines:
+        groups.setdefault(Path(submarine.path).stem.casefold(), []).append(
+            submarine.path
+        )
+    duplicates: list[list[str]] = [paths for paths in groups.values() if len(paths) > 1]
+    if duplicates:
+        paths_text: str = "\n".join(
+            f"  {path}" for group in duplicates for path in group
+        )
+        print(
+            format_message(
+                t("warning.duplicate_registered", paths=paths_text),
+                label="warning",
+            )
+        )
+
 
 def _workspace_prompt(info: WorkspaceInfo | None) -> str:
     """Return the interactive prompt for the current workspace."""

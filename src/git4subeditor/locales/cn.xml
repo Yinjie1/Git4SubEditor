@@ -138,4 +138,5 @@
   <message key="err.invalid_decompressed_xml">解压后的数据不是有效 XML: {error}</message>
   <message key="err.pack_xml_ambiguous">该 XML 路径对应多个潜艇: {paths}</message>
   <message key="warning.pack_duplicate_name">输出目录 {path} 不是已注册潜艇目录, 可能出现多个同名 .sub 文件</message>
+  <message key="warning.duplicate_registered">多个已注册潜艇名称相同:&#10;{paths}</message>
 </locale>

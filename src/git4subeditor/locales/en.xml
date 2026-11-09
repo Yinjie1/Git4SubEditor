@@ -140,4 +140,5 @@
   <message key="err.invalid_decompressed_xml">decompressed data is not valid XML: {error}</message>
   <message key="err.pack_xml_ambiguous">XML path is recorded for multiple submarines: {paths}</message>
   <message key="warning.pack_duplicate_name">output directory {path} is not a registered submarine directory; this may create duplicate .sub files</message>
+  <message key="warning.duplicate_registered">multiple registered submarines share a name:&#10;{paths}</message>
 </locale>
