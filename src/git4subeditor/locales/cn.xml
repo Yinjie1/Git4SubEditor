@@ -74,6 +74,7 @@
   <message key="err.stdout_single">--stdout 只能接受一个输入文件</message>
   <message key="err.output_multi">打包多个文件时, --output 必须是已存在的目录</message>
   <message key="prompt.overwrite">{path} 已存在. 是否覆盖? [y/N] </message>
+  <message key="prompt.xml_update">将更新 {name} 的 XML 路径: {old} -> {new}, 是否继续? [y/N] </message>
   <message key="prompt.submarines">是否添加/修改这些潜艇? [y/N] </message>
   <message key="prompt.remove_submarines">是否移除这些潜艇? [y/N] </message>
   <message key="prompt.mod_root_changed">MOD 根目录: {old} -> {new}, 是否更新? [y/N] </message>

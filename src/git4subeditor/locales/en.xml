@@ -76,6 +76,7 @@
   <message key="err.stdout_single">--stdout accepts only one input file</message>
   <message key="err.output_multi">--output must be an existing directory when packing multiple files</message>
   <message key="prompt.overwrite">{path} already exists. Overwrite? [y/N] </message>
+  <message key="prompt.xml_update">Update XML path for {name}: {old} -> {new}. Continue? [y/N] </message>
   <message key="prompt.submarines">Update these submarine entries? [y/N] </message>
   <message key="prompt.remove_submarines">Remove these submarine entries? [y/N] </message>
   <message key="prompt.mod_root_changed">MOD root: {old} -> {new}. Update? [y/N] </message>

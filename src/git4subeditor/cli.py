@@ -260,11 +260,14 @@ class _SubmarineEntry:
         path: Submarine path relative to the workspace directory.
         preview_path: Resolved preview image path, or None when no preview is
             configured.
+        xml_path: Resolved exported XML path, or None when no XML path is
+            recorded.
     """
 
     name: str
     path: str
     preview_path: Path | None = None
+    xml_path: Path | None = None
 
 
 def _load_registry() -> dict[Path, _SubmarineEntry] | None:
@@ -292,10 +295,15 @@ def _load_registry() -> dict[Path, _SubmarineEntry] | None:
         preview_path: Path | None = (
             (workspace_root / Path(preview_text)).resolve() if preview_text else None
         )
+        xml_text: str = (entry.get("xml") or "").strip()
+        xml_path: Path | None = (
+            (workspace_root / Path(xml_text)).resolve() if xml_text else None
+        )
         registry[sub_path] = _SubmarineEntry(
             name=entry.get("name") or sub_path.stem,
             path=path_text,
             preview_path=preview_path,
+            xml_path=xml_path,
         )
     return registry
 
@@ -575,12 +583,40 @@ def _run_command(
                     validate=not args.no_validate,
                 )
             elif args.command == "export":
-                _require_registered(src, registry)
+                entry: _SubmarineEntry | None = _require_registered(src, registry)
+                recorded_xml: Path | None = entry.xml_path if entry else None
+                recorded_dir: Path | None = (
+                    recorded_xml.parent if recorded_xml is not None else None
+                )
                 force: bool = args.force or auto_export
                 target_dir: Path = (
-                    args.output_dir if args.output_dir is not None else src.parent
+                    args.output_dir
+                    if args.output_dir is not None
+                    else recorded_dir or src.parent
                 )
                 xml_path: Path = target_dir / f"{src.stem}.xml"
+                if (
+                    args.output_dir is not None
+                    and recorded_dir is not None
+                    and target_dir.resolve() != recorded_dir
+                    and not args.force
+                ):
+                    assert recorded_xml is not None
+                    try:
+                        answer: str = input(
+                            t(
+                                "prompt.xml_update",
+                                name=entry.name if entry else src.stem,
+                                old=_relative_display(recorded_xml),
+                                new=_relative_display(xml_path),
+                            )
+                        )
+                    except EOFError:
+                        print()
+                        continue
+                    if answer.strip().casefold() != "y":
+                        print(t("status.skipped", path=_relative_display(xml_path)))
+                        continue
                 if not force and xml_path.exists():
                     if not _confirm_overwrite(xml_path):
                         print(
@@ -593,7 +629,7 @@ def _run_command(
                     force = True
                 result = export_sub(
                     src,
-                    args.output_dir,
+                    target_dir,
                     force=force,
                     sort_attributes=args.sort_attributes,
                 )
