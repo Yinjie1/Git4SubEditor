@@ -80,6 +80,7 @@
   <message key="prompt.mod_root_changed">MOD 根目录: {old} -> {new}, 是否更新? [y/N] </message>
   <message key="prompt.git_repo_changed">Git 仓库: {old} -> {new}, 是否更新? [y/N] </message>
   <message key="prompt.export_changed">是否导出这些潜艇? [y/N] </message>
+  <message key="prompt.duplicate_names">是否强行导入? [y/N] </message>
   <message key="status.skipped">已跳过: {path}</message>
   <message key="status.no_changed_submarines">没有已改动的注册潜艇</message>
   <message key="status.export_changed_header">已改动的已注册潜艇:</message>
@@ -108,6 +109,8 @@
   <message key="init.registered_header">已注册潜艇:</message>
   <message key="init.pending_header">需要添加或修改的潜艇:</message>
   <message key="init.removed_header">需要移除的已注册潜艇:</message>
+  <message key="init.duplicate_header">存在同名的 .sub 文件:</message>
+  <message key="init.duplicate_warning">多个 .sub 文件名称相同, 可能导致一些问题.</message>
   <message key="init.registered">已注册 {count} 个潜艇文件</message>
   <message key="init.submarines_skipped">未更新潜艇注册信息</message>
   <message key="init.language_set">语言设置为中文</message>

@@ -192,6 +192,28 @@ def _confirm_overwrite(path: Path) -> bool:
     return answer.strip().casefold() == "y"
 
 
+def _confirm_duplicate_names(
+    groups: tuple[tuple[SubmarineEntry, ...], ...],
+) -> bool:
+    """Show submarine files that share a name and ask to import them anyway."""
+    print(t("init.duplicate_header"))
+    for group in groups:
+        print(f"  {group[0].name}:")
+        for entry in group:
+            print(f"    {entry.path}")
+    sys.stdout.flush()
+    print(
+        format_message(t("init.duplicate_warning"), label="warning"),
+        file=sys.stderr,
+    )
+    try:
+        answer: str = input(t("prompt.duplicate_names"))
+    except EOFError:
+        print()
+        return False
+    return answer.strip().casefold() == "y"
+
+
 def _confirm_submarines(
     registered: tuple[SubmarineEntry, ...],
     pending: tuple[SubmarineEntry, ...],
@@ -418,6 +440,7 @@ def _run_command(
                 confirm_removals=None if args.force else _confirm_submarine_removals,
                 confirm_mod_root=confirm_mod_root,
                 confirm_git_repo=confirm_git_repo,
+                confirm_duplicates=None if args.force else _confirm_duplicate_names,
             )
         except InitializeError as exc:
             print(format_message(str(exc), label="error"), file=sys.stderr)

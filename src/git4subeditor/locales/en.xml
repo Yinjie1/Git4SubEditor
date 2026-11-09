@@ -82,6 +82,7 @@
   <message key="prompt.mod_root_changed">MOD root: {old} -> {new}. Update? [y/N] </message>
   <message key="prompt.git_repo_changed">Git repo: {old} -> {new}. Update? [y/N] </message>
   <message key="prompt.export_changed">Export these submarines? [y/N] </message>
+  <message key="prompt.duplicate_names">Import anyway? [y/N] </message>
   <message key="status.skipped">skipped: {path}</message>
   <message key="status.no_changed_submarines">no changed registered submarines</message>
   <message key="status.export_changed_header">Registered submarines with changes:</message>
@@ -110,6 +111,8 @@
   <message key="init.registered_header">Registered submarines:</message>
   <message key="init.pending_header">Submarines to add or update:</message>
   <message key="init.removed_header">Registered submarines to remove:</message>
+  <message key="init.duplicate_header">Submarine files with the same name:</message>
+  <message key="init.duplicate_warning">multiple .sub files share the same name and may cause problems</message>
   <message key="init.registered">registered {count} submarine files</message>
   <message key="init.submarines_skipped">submarine registry not updated</message>
   <message key="init.language_set">Language set to English</message>

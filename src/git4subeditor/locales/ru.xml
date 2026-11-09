@@ -82,6 +82,7 @@
   <message key="prompt.mod_root_changed">Корень мода: {old} -> {new}. Обновить? [y/N] </message>
   <message key="prompt.git_repo_changed">Git-репозиторий: {old} -> {new}. Обновить? [y/N] </message>
   <message key="prompt.export_changed">Экспортировать эти подводные лодки? [y/N] </message>
+  <message key="prompt.duplicate_names">Импортировать всё равно? [y/N] </message>
   <message key="status.skipped">пропущено: {path}</message>
   <message key="status.no_changed_submarines">нет изменённых зарегистрированных подводных лодок</message>
   <message key="status.export_changed_header">Зарегистрированные подводные лодки с изменениями:</message>
@@ -110,6 +111,8 @@
   <message key="init.registered_header">Зарегистрированные подводные лодки:</message>
   <message key="init.pending_header">Подводные лодки для добавления или обновления:</message>
   <message key="init.removed_header">Зарегистрированные подводные лодки для удаления:</message>
+  <message key="init.duplicate_header">Файлы подводных лодок с одинаковым именем:</message>
+  <message key="init.duplicate_warning">несколько файлов .sub имеют одинаковое имя; это может вызвать проблемы</message>
   <message key="init.registered">зарегистрировано {count} файлов подводных лодок</message>
   <message key="init.submarines_skipped">реестр подводных лодок не обновлён</message>
   <message key="init.language_set">Язык установлен: русский</message>

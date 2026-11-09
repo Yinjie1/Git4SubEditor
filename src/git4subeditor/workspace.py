@@ -59,6 +59,7 @@ type SubmarineConfirm = Callable[
 ]
 type RemovalConfirm = Callable[[tuple[SubmarineEntry, ...]], bool]
 type PathConfirm = Callable[[str, str], bool]
+type DuplicateConfirm = Callable[[tuple[tuple[SubmarineEntry, ...], ...]], bool]
 
 
 def read_config_root() -> ET.Element | None:
@@ -371,6 +372,7 @@ def initialize_project(
     confirm_removals: RemovalConfirm | None = None,
     confirm_mod_root: PathConfirm | None = None,
     confirm_git_repo: PathConfirm | None = None,
+    confirm_duplicates: DuplicateConfirm | None = None,
 ) -> InitResult:
     """Initialize or update a workspace with .gitignore and project configuration.
 
@@ -403,6 +405,9 @@ def initialize_project(
         confirm_git_repo: Optional callback that receives the configured and
             detected Git repository paths. Returning False keeps the configured
             path.
+        confirm_duplicates: Optional callback that receives groups of scanned
+            submarine files whose names collide. Returning False leaves the
+            registry unchanged.
 
     Returns:
         Details about the created or updated files.
@@ -458,6 +463,7 @@ def initialize_project(
         repository_root,
         confirm_submarines,
         confirm_removals,
+        confirm_duplicates,
     )
     return InitResult(
         gitignore_path=gitignore_path,
@@ -630,6 +636,23 @@ def _detect_submarines(
     return tuple(entries), tuple(unregistered), tuple(modified), missing
 
 
+def _duplicate_name_groups(
+    entries: tuple[SubmarineEntry, ...],
+) -> tuple[tuple[SubmarineEntry, ...], ...]:
+    """Group scanned submarines by case-insensitive file stem.
+
+    Args:
+        entries: Scanned submarine entries in scan order.
+
+    Returns:
+        Groups containing more than one entry, preserving scan order.
+    """
+    groups: dict[str, list[SubmarineEntry]] = {}
+    for entry in entries:
+        groups.setdefault(Path(entry.path).stem.casefold(), []).append(entry)
+    return tuple(tuple(group) for group in groups.values() if len(group) > 1)
+
+
 def _confirm_submarine_update(
     confirm: SubmarineConfirm | None,
     root: ET.Element | None,
@@ -665,6 +688,7 @@ def _create_project_config(
     repository_root: Path | None,
     confirm_submarines: SubmarineConfirm | None,
     confirm_removals: RemovalConfirm | None,
+    confirm_duplicates: DuplicateConfirm | None,
 ) -> tuple[
     Path,
     bool,
@@ -690,8 +714,16 @@ def _create_project_config(
         submarines, unregistered, modified, _ = _detect_submarines(
             None, repository_root, base
         )
+        duplicate_groups: tuple[tuple[SubmarineEntry, ...], ...] = (
+            _duplicate_name_groups(submarines)
+        )
+        duplicates_confirmed: bool = (
+            confirm_duplicates is None
+            or not duplicate_groups
+            or confirm_duplicates(duplicate_groups)
+        )
         pending: tuple[SubmarineEntry, ...] = (*unregistered, *modified)
-        update_submarines: bool = _confirm_submarine_update(
+        update_submarines: bool = duplicates_confirmed and _confirm_submarine_update(
             confirm_submarines, root, pending
         )
         if update_submarines:
@@ -711,13 +743,19 @@ def _create_project_config(
     submarines, unregistered, modified, removed = _detect_submarines(
         root, repository_root, base
     )
+    duplicate_groups = _duplicate_name_groups(submarines)
+    duplicates_confirmed = (
+        confirm_duplicates is None
+        or not duplicate_groups
+        or confirm_duplicates(duplicate_groups)
+    )
     pending: tuple[SubmarineEntry, ...] = (*unregistered, *modified)
-    update_submarines = _confirm_submarine_update(
+    update_submarines: bool = duplicates_confirmed and _confirm_submarine_update(
         confirm_submarines,
         root,
         pending,
     )
-    remove_submarines: bool = (
+    remove_submarines: bool = duplicates_confirmed and (
         not removed or confirm_removals is None or confirm_removals(removed)
     )
     changed: bool = False
