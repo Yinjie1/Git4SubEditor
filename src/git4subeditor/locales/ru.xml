@@ -83,6 +83,7 @@
   <message key="prompt.git_repo_changed">Git-репозиторий: {old} -> {new}. Обновить? [y/N] </message>
   <message key="prompt.export_changed">Экспортировать эти подводные лодки? [y/N] </message>
   <message key="prompt.duplicate_names">Импортировать всё равно? [y/N] </message>
+  <message key="prompt.pack_modified">Всё равно упаковать? [y/N] </message>
   <message key="status.skipped">пропущено: {path}</message>
   <message key="status.no_changed_submarines">нет изменённых зарегистрированных подводных лодок</message>
   <message key="status.export_changed_header">Зарегистрированные подводные лодки с изменениями:</message>
@@ -99,6 +100,7 @@
   <message key="warning.no_repo">Git-репозиторий не найден до корня мода; выполните 'git init' для инициализации</message>
   <message key="warning.upper_repo">у этого проекта также есть родительский Git-репозиторий: {path}</message>
   <message key="warning.preview_missing">изображение предпросмотра не найдено: {path}; предпросмотр будет пустым</message>
+  <message key="warning.pack_modified">у файла подводной лодки {path} есть непринятые изменения; упаковка их перезапишет</message>
   <message key="warning.registry_preview_failed">не удалось прочитать предпросмотр для подводной лодки {name}; используется предпросмотр по умолчанию</message>
   <message key="warning.decode_replace">входные данные не являются допустимым UTF-8/UTF-16; декодирование как UTF-8 с символами замены</message>
 

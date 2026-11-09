@@ -60,10 +60,10 @@ def _print_command_list() -> None:
     commands: tuple[tuple[str, str], ...] = (
         ("init", t("repl.command.init")),
         ("tree", t("repl.command.tree")),
+        ("setting", t("repl.command.setting")),
         ("export <file.sub> [-o DIR]", t("repl.command.export")),
         ("pack <file.xml> [-o FILE]", t("repl.command.pack")),
         ("unpack <file.sub> [-o DIR]", t("repl.command.unpack")),
-        ("setting", t("repl.command.setting")),
     )
     columns: int = shutil.get_terminal_size(fallback=(80, 24)).columns
     max_command: int = max(len(syntax) for syntax, _ in commands)

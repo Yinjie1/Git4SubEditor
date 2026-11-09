@@ -8,7 +8,7 @@ from functools import partial
 from pathlib import Path
 
 from git4subeditor import __version__
-from git4subeditor.gitformat import export_sub, pack_sub
+from git4subeditor.gitformat import _resolve_pack_output, export_sub, pack_sub
 from git4subeditor.l10n import (
     DEFAULT_LANGUAGE,
     SUPPORTED_LANGUAGES,
@@ -23,6 +23,7 @@ from git4subeditor.workspace import (
     IGNORE_PATTERNS,
     InitializeError,
     SubmarineEntry,
+    WorkspaceInfo,
     _detect_submarines,
     _relative_display,
     initialize_project,
@@ -394,6 +395,28 @@ def _registry_preview_override(
         return None
 
 
+def _changed_submarines(info: WorkspaceInfo) -> tuple[SubmarineEntry, ...]:
+    """Return registered submarines whose file hash changed on disk.
+
+    Args:
+        info: Workspace information with the submarine registry.
+
+    Returns:
+        Registered entries with a recorded hash that no longer matches the
+        ``.sub`` file, in scan order.
+    """
+    repository_root: Path = (Path.cwd() / (info.git_repo or ".")).resolve()
+    recorded: dict[str, SubmarineEntry] = {
+        entry.path: entry for entry in info.submarines
+    }
+    modified = _detect_submarines(
+        read_config_root(),
+        repository_root,
+        Path.cwd(),
+    )[2]
+    return tuple(entry for entry in modified if recorded[entry.path].hash is not None)
+
+
 def _run_command(
     args: argparse.Namespace,
     *,
@@ -590,16 +613,7 @@ def _run_command(
                 file=sys.stderr,
             )
             return 1
-        repository_root: Path = (Path.cwd() / (info.git_repo or ".")).resolve()
-        modified = _detect_submarines(
-            read_config_root(),
-            repository_root,
-            Path.cwd(),
-        )[2]
-        registered = {entry.path: entry for entry in info.submarines}
-        targets = tuple(
-            entry for entry in modified if registered[entry.path].hash is not None
-        )
+        targets = _changed_submarines(info)
         if not targets:
             print(t("status.no_changed_submarines"))
             return 0
@@ -722,6 +736,30 @@ def _run_command(
                     )
                     pack_output = args.output
                 preview_override: bytes | None = _registry_preview_override(entry)
+                info = load_workspace_info()
+                target: Path = _resolve_pack_output(src, pack_output).resolve()
+                if info is not None and any(
+                    (Path.cwd() / changed.path).resolve() == target
+                    for changed in _changed_submarines(info)
+                ):
+                    print(
+                        format_message(
+                            t(
+                                "warning.pack_modified",
+                                path=_relative_display(target),
+                            ),
+                            label="warning",
+                        ),
+                        file=sys.stderr,
+                    )
+                    try:
+                        answer: str = input(t("prompt.pack_modified"))
+                    except EOFError:
+                        print()
+                        continue
+                    if answer.strip().casefold() != "y":
+                        print(t("status.skipped", path=_relative_display(target)))
+                        continue
                 dst = pack_sub(
                     src,
                     pack_output,

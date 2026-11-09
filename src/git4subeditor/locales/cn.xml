@@ -81,6 +81,7 @@
   <message key="prompt.git_repo_changed">Git 仓库: {old} -> {new}, 是否更新? [y/N] </message>
   <message key="prompt.export_changed">是否导出这些潜艇? [y/N] </message>
   <message key="prompt.duplicate_names">是否强行导入? [y/N] </message>
+  <message key="prompt.pack_modified">是否仍要打包? [y/N] </message>
   <message key="status.skipped">已跳过: {path}</message>
   <message key="status.no_changed_submarines">没有已改动的注册潜艇</message>
   <message key="status.export_changed_header">已改动的已注册潜艇:</message>
@@ -97,6 +98,7 @@
   <message key="warning.no_repo">在模组根目录范围内未找到 Git 仓库; 请运行 'git init' 初始化</message>
   <message key="warning.upper_repo">本项目还存在上级 Git 仓库: {path}</message>
   <message key="warning.preview_missing">找不到预览图: {path}; 预览将留空</message>
+  <message key="warning.pack_modified">潜艇文件 {path} 存在未提交的改动, 强行打包将导致该改动丢失</message>
   <message key="warning.registry_preview_failed">潜艇{name}预览图读取失败, 按照默认方式读取</message>
   <message key="warning.decode_replace">输入不是有效的 UTF-8/UTF-16, 将使用替换字符按 UTF-8 解码</message>
 

@@ -38,4 +38,4 @@ __all__ = [
     "validate_xml",
 ]
 
-__version__ = "0.1.27"
+__version__ = "0.1.29"
