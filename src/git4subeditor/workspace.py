@@ -25,12 +25,15 @@ class SubmarineEntry:
             None when no preview is configured.
         hash: SHA-256 hash of the submarine file recorded at registration, or
             None when no hash is configured.
+        xml: Exported XML path relative to the workspace directory, or None
+            when the submarine has not been exported.
     """
 
     name: str
     path: str
     preview: str | None = None
     hash: str | None = None
+    xml: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,11 +105,13 @@ def load_workspace_info() -> WorkspaceInfo | None:
             continue
         name_text: str = (entry.get("name") or "").strip() or Path(path_text).stem
         hash_text: str = (entry.get("hash") or "").strip()
+        xml_text: str = (entry.get("xml") or "").strip()
         submarines.append(
             SubmarineEntry(
                 name=name_text,
                 path=path_text,
                 hash=hash_text or None,
+                xml=xml_text or None,
             )
         )
 
@@ -146,11 +151,11 @@ def _file_hash(path: Path) -> str:
         return hashlib.file_digest(handle, "sha256").hexdigest()
 
 
-def refresh_submarine_hashes(submarines: tuple[SubmarineEntry, ...]) -> bool:
-    """Refresh stored hashes for successfully exported submarine entries.
+def refresh_submarine_metadata(submarines: tuple[SubmarineEntry, ...]) -> bool:
+    """Refresh stored hashes and XML paths for exported submarine entries.
 
     Args:
-        submarines: Exported entries containing their refreshed hashes.
+        submarines: Exported entries containing refreshed hashes and XML paths.
 
     Returns:
         Whether ``git4subeditor.xml`` was rewritten.
@@ -161,15 +166,18 @@ def refresh_submarine_hashes(submarines: tuple[SubmarineEntry, ...]) -> bool:
     root: ET.Element | None = read_config_root()
     if root is None:
         return False
-    hashes: dict[str, str] = {
-        entry.path: entry.hash for entry in submarines if entry.hash is not None
-    }
+    entries: dict[str, SubmarineEntry] = {entry.path: entry for entry in submarines}
     changed: bool = False
     for child in root.findall("./submarines/submarine"):
         path_text: str = (child.get("path") or "").strip()
-        new_hash: str | None = hashes.get(path_text)
-        if new_hash is not None and child.get("hash") != new_hash:
-            child.set("hash", new_hash)
+        entry: SubmarineEntry | None = entries.get(path_text)
+        if entry is None:
+            continue
+        if entry.hash is not None and child.get("hash") != entry.hash:
+            child.set("hash", entry.hash)
+            changed = True
+        if entry.xml is not None and child.get("xml") != entry.xml:
+            child.set("xml", entry.xml)
             changed = True
     if changed:
         _write_project_config(Path.cwd() / "git4subeditor.xml", root)
@@ -595,6 +603,7 @@ def _detect_submarines(
                 path=path_text,
                 preview=(child.get("preview") or "").strip() or None,
                 hash=(child.get("hash") or "").strip() or None,
+                xml=(child.get("xml") or "").strip() or None,
             )
 
     unregistered: list[SubmarineEntry] = []
@@ -610,6 +619,7 @@ def _detect_submarines(
                     path=entry.path,
                     preview=entry.preview,
                     hash=entry.hash,
+                    xml=old.xml,
                 )
             )
 

@@ -3,7 +3,7 @@
 import argparse
 import sys
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import partial
 from pathlib import Path
 
@@ -29,7 +29,7 @@ from git4subeditor.workspace import (
     load_workspace_info,
     print_submarine_paths,
     read_config_root,
-    refresh_submarine_hashes,
+    refresh_submarine_metadata,
 )
 
 
@@ -561,7 +561,7 @@ def _run_command(
         args.inputs = [Path.cwd() / entry.path for entry in targets]
         auto_export = True
 
-    exported: list[Path] = []
+    exported: dict[Path, Path] = {}
     errors: int = 0
     for src in args.inputs:
         try:
@@ -597,7 +597,7 @@ def _run_command(
                     force=force,
                     sort_attributes=args.sort_attributes,
                 )
-                exported.append(src)
+                exported[src.resolve()] = result.xml_path
                 if result.preview_path is not None:
                     print(
                         t(
@@ -645,14 +645,13 @@ def _run_command(
                     repository_root,
                     Path.cwd(),
                 )
-                exported_paths: set[Path] = {path.resolve() for path in exported}
-                refresh_submarine_hashes(
-                    tuple(
-                        entry
-                        for entry in scanned
-                        if (Path.cwd() / entry.path).resolve() in exported_paths
-                    )
-                )
+                updates: list[SubmarineEntry] = []
+                for entry in scanned:
+                    xml_path = exported.get((Path.cwd() / entry.path).resolve())
+                    if xml_path is None:
+                        continue
+                    updates.append(replace(entry, xml=_relative_display(xml_path)))
+                refresh_submarine_metadata(tuple(updates))
         except SubFileError as exc:
             print(format_message(str(exc), label="error"), file=sys.stderr)
             return 1
