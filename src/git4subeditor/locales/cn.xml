@@ -13,7 +13,7 @@
   <message key="repl.command.pack">打包 XML 为 .sub</message>
   <message key="repl.command.unpack">仅解压 .sub 为原始 XML</message>
   <message key="repl.command.tree">递归搜索并显示仓库下所有潜艇</message>
-  <message key="repl.command.setting">打开工作区配置</message>
+  <message key="repl.command.setting">打开工作区配置文件</message>
   <message key="repl.hint">Tab 补全 · ↑↓ 历史 · Ctrl-R 搜索 · Ctrl-D 退出 · ? 帮助</message>
   <message key="repl.help"><![CDATA[<title>tree</title>
   以目录树形式显示 Git 仓库下的潜艇 .sub 文件.
@@ -142,4 +142,5 @@
   <message key="command.setting">打开工作区配置文件</message>
   <message key="err.config_missing">找不到配置文件: {path}</message>
   <message key="err.open_config">无法打开配置文件 {path}: {error}</message>
+  <message key="status.config_opened">已打开 {path}</message>
 </locale>

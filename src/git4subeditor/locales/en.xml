@@ -13,7 +13,7 @@
   <message key="repl.command.pack">pack XML into .sub</message>
   <message key="repl.command.unpack">extract .sub as raw XML only</message>
   <message key="repl.command.tree">recursively search and show all submarines in the repository</message>
-  <message key="repl.command.setting">open workspace configuration</message>
+  <message key="repl.command.setting">open workspace configuration file</message>
   <message key="repl.hint">Tab complete · ↑↓ history · Ctrl-R search · Ctrl-D quit · ? help</message>
   <message key="repl.help"><![CDATA[<title>tree</title>
   Show submarine .sub files in the Git repository as a directory tree.
@@ -144,4 +144,5 @@
   <message key="command.setting">open the workspace configuration file</message>
   <message key="err.config_missing">configuration file not found: {path}</message>
   <message key="err.open_config">cannot open configuration file {path}: {error}</message>
+  <message key="status.config_opened">opened {path}</message>
 </locale>
