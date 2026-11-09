@@ -736,30 +736,36 @@ def _run_command(
                     )
                     pack_output = args.output
                 preview_override: bytes | None = _registry_preview_override(entry)
-                info = load_workspace_info()
-                target: Path = _resolve_pack_output(src, pack_output).resolve()
-                if info is not None and any(
-                    (Path.cwd() / changed.path).resolve() == target
-                    for changed in _changed_submarines(info)
-                ):
-                    print(
-                        format_message(
-                            t(
-                                "warning.pack_modified",
-                                path=_relative_display(target),
+                if matches:
+                    info = load_workspace_info()
+                    target: Path = _resolve_pack_output(src, pack_output).resolve()
+                    if info is not None and any(
+                        (Path.cwd() / changed.path).resolve() == target
+                        for changed in _changed_submarines(info)
+                    ):
+                        print(
+                            format_message(
+                                t(
+                                    "warning.pack_modified",
+                                    path=_relative_display(target),
+                                ),
+                                label="warning",
                             ),
-                            label="warning",
-                        ),
-                        file=sys.stderr,
-                    )
-                    try:
-                        answer: str = input(t("prompt.pack_modified"))
-                    except EOFError:
-                        print()
-                        continue
-                    if answer.strip().casefold() != "y":
-                        print(t("status.skipped", path=_relative_display(target)))
-                        continue
+                            file=sys.stderr,
+                        )
+                        try:
+                            answer: str = input(t("prompt.pack_modified"))
+                        except EOFError:
+                            print()
+                            continue
+                        if answer.strip().casefold() != "y":
+                            print(
+                                t(
+                                    "status.skipped",
+                                    path=_relative_display(target),
+                                )
+                            )
+                            continue
                 dst = pack_sub(
                     src,
                     pack_output,
