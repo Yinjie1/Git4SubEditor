@@ -675,14 +675,58 @@ def _run_command(
                         )
                     )
             else:
-                entry: _SubmarineEntry | None = _require_registered(src, registry)
+                matches: tuple[_SubmarineEntry, ...] = (
+                    tuple(
+                        entry
+                        for entry in registry.values()
+                        if entry.xml_path == src.resolve()
+                    )
+                    if registry is not None
+                    else ()
+                )
+                if args.output is None and matches:
+                    if len(matches) > 1:
+                        paths: str = ", ".join(entry.path for entry in matches)
+                        raise SubFileError(t("err.pack_xml_ambiguous", paths=paths))
+                    entry: _SubmarineEntry | None = matches[0]
+                    pack_output: Path | None = (Path.cwd() / entry.path).parent
+                else:
+                    entry = (
+                        matches[0] if matches else _require_registered(src, registry)
+                    )
+                    pack_output = args.output
                 preview_override: bytes | None = _registry_preview_override(entry)
                 dst = pack_sub(
                     src,
-                    args.output,
+                    pack_output,
                     preview_override=preview_override,
                     sort_attributes=args.sort_attributes,
                 )
+                if args.output is not None and matches:
+                    info = load_workspace_info()
+                    if info is not None:
+                        repository_root: Path = (
+                            Path.cwd() / (info.git_repo or ".")
+                        ).resolve()
+                        output_dir: Path = dst.parent.resolve()
+                        submarine_dirs: set[Path] = {
+                            (Path.cwd() / match.path).parent.resolve()
+                            for match in matches
+                        }
+                        if (
+                            output_dir.is_relative_to(repository_root)
+                            and output_dir not in submarine_dirs
+                        ):
+                            print(
+                                format_message(
+                                    t(
+                                        "warning.pack_duplicate_name",
+                                        path=_relative_display(dst.parent),
+                                    ),
+                                    label="warning",
+                                ),
+                                file=sys.stderr,
+                            )
                 print(
                     t(
                         "status.pack",

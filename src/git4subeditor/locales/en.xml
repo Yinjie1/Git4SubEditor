@@ -138,4 +138,6 @@
   <message key="err.decode">failed to decode as {encoding}: {error}</message>
   <message key="err.decode_utf16">failed to decode as UTF-16: {error}</message>
   <message key="err.invalid_decompressed_xml">decompressed data is not valid XML: {error}</message>
+  <message key="err.pack_xml_ambiguous">XML path is recorded for multiple submarines: {paths}</message>
+  <message key="warning.pack_duplicate_name">output directory {path} is not a registered submarine directory; this may create duplicate .sub files</message>
 </locale>
