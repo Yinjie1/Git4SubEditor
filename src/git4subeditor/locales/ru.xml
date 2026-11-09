@@ -101,7 +101,7 @@
   <message key="warning.upper_repo">у этого проекта также есть родительский Git-репозиторий: {path}</message>
   <message key="warning.preview_missing">изображение предпросмотра не найдено: {path}; предпросмотр будет пустым</message>
   <message key="warning.pack_modified">у файла подводной лодки {path} есть непринятые изменения; упаковка их перезапишет</message>
-  <message key="warning.registry_preview_failed">не удалось прочитать предпросмотр для подводной лодки {name}; используется предпросмотр по умолчанию</message>
+  <message key="warning.registry_preview_failed">не удалось прочитать изображение предпросмотра {path}; используется предпросмотр по умолчанию</message>
   <message key="warning.decode_replace">входные данные не являются допустимым UTF-8/UTF-16; декодирование как UTF-8 с символами замены</message>
 
   <message key="init.created_gitignore">создан {name}; добавлено {patterns}</message>

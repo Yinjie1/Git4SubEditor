@@ -101,7 +101,7 @@
   <message key="warning.upper_repo">this project also has an upper-level Git repo: {path}</message>
   <message key="warning.preview_missing">preview image not found: {path}; preview will be left empty</message>
   <message key="warning.pack_modified">submarine file {path} has uncommitted changes; packing will discard them</message>
-  <message key="warning.registry_preview_failed">failed to read preview for submarine {name}; using the default preview</message>
+  <message key="warning.registry_preview_failed">failed to read preview image {path}; using the default preview</message>
   <message key="warning.decode_replace">input is not valid UTF-8/UTF-16, decoding as UTF-8 with replacement characters</message>
 
   <message key="init.created_gitignore">created {name}; added {patterns}</message>

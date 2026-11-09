@@ -233,7 +233,7 @@ def pack_sub(
     xml_path: Path,
     out: Path | None = None,
     *,
-    preview_override: bytes | None = None,
+    preview_override: Path | None = None,
     sort_attributes: bool = False,
     compresslevel: int = 9,
 ) -> Path:
@@ -244,8 +244,9 @@ def pack_sub(
     a warning is printed and the preview is omitted. An existing target is
     copied to ``<target>.bak`` before it is overwritten.
 
-    When ``preview_override`` is provided, those image bytes take priority
-    over the XML ``preview`` link and are embedded instead.
+    When ``preview_override`` is provided, that image file takes priority over
+    the XML ``preview`` link and is embedded instead. A read failure prints a
+    warning and falls back to the ``preview`` link.
 
     The output is gzip-compressed with a fixed timestamp, so packing the same
     XML twice produces identical bytes.
@@ -253,7 +254,7 @@ def pack_sub(
     Args:
         xml_path: Path to the exported XML file.
         out: Output .sub path. Defaults to the XML file with a ``.sub`` suffix.
-        preview_override: Optional preview image bytes that override the XML
+        preview_override: Optional preview image file that overrides the XML
             ``preview`` link.
         sort_attributes: Whether to sort XML attributes before packing.
         compresslevel: gzip compression level from 0 to 9.
@@ -263,8 +264,7 @@ def pack_sub(
 
     Raises:
         SubFileError: If reading, parsing, resolving the preview link, backing
-            up the target, or writing fails, or if the override image is
-            empty.
+            up the target, or writing fails, or if the preview image is empty.
         ValueError: If compresslevel is outside the range 0 to 9.
     """
     if not 0 <= compresslevel <= 9:
@@ -283,10 +283,22 @@ def pack_sub(
 
     link = root.attrib.pop(PREVIEW_LINK_ATTRIBUTE, None)
     if PREVIEW_ATTRIBUTE not in root.attrib:
+        override: bytes | None = None
         if preview_override is not None:
-            if not preview_override:
-                raise SubFileError(t("err.empty_preview", path=xml_path))
-            embed_preview_image(root, preview_override)
+            try:
+                override = preview_override.read_bytes()
+            except OSError:
+                print(
+                    format_message(
+                        t("warning.registry_preview_failed", path=preview_override),
+                        label="warning",
+                    ),
+                    file=sys.stderr,
+                )
+        if override is not None:
+            if not override:
+                raise SubFileError(t("err.empty_preview", path=preview_override))
+            embed_preview_image(root, override)
         elif link is not None:
             preview_path = _resolve_preview_link(xml_path, link)
             try:

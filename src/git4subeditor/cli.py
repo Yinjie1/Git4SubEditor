@@ -366,35 +366,6 @@ def _require_registered(
         raise SubFileError(t("err.not_registered", path=path)) from None
 
 
-def _registry_preview_override(
-    entry: _SubmarineEntry | None,
-) -> bytes | None:
-    """Return the preview image configured for a registered submarine.
-
-    Args:
-        entry: Registered submarine entry, or None when no configuration
-            exists.
-
-    Returns:
-        Preview image bytes, or None when no registered preview should be
-        used. A read failure prints a localized warning and also returns None
-        so packing falls back to the XML ``preview`` link.
-    """
-    if entry is None or entry.preview_path is None:
-        return None
-    try:
-        return entry.preview_path.read_bytes()
-    except OSError:
-        print(
-            format_message(
-                t("warning.registry_preview_failed", name=entry.name),
-                label="warning",
-            ),
-            file=sys.stderr,
-        )
-        return None
-
-
 def _changed_submarines(info: WorkspaceInfo) -> tuple[SubmarineEntry, ...]:
     """Return registered submarines whose file hash changed on disk.
 
@@ -735,7 +706,9 @@ def _run_command(
                         matches[0] if matches else _require_registered(src, registry)
                     )
                     pack_output = args.output
-                preview_override: bytes | None = _registry_preview_override(entry)
+                preview_override: Path | None = (
+                    entry.preview_path if entry is not None else None
+                )
                 if matches:
                     info = load_workspace_info()
                     target: Path = _resolve_pack_output(src, pack_output).resolve()
