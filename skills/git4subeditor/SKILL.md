@@ -1,10 +1,10 @@
 ---
 name: git4subeditor
 description: Convert Barotrauma submarine `.sub` files into Git-friendly XML and back with the `git4subeditor` CLI. Use this skill whenever the user works on a Barotrauma submarine mod inside a Git repository: initializing a mod workspace, exporting `.sub` to XML after editing a submarine in game, packing an XML back into `.sub`, checking which submarines changed, reviewing `git diff` of submarine XML, writing commit messages for submarine changes, or restoring an older submarine version. Especially use it when the user mentions Barotrauma, submarine mods, `.sub` files, `git4subeditor`, or asks why a submarine XML diff is huge or unreadable.
-compatibility: Requires the `git4subeditor` CLI (`uv tool install git4subeditor`) and `git`.
+compatibility: Requires the `git4subeditor` CLI and `git`. Ask the user before installing anything.
 metadata:
   author: Yinjie
-  version: '1.0'
+  version: '1.1'
   repository: https://github.com/Yinjie1/Git4SubEditor
 ---
 
@@ -13,57 +13,73 @@ metadata:
 `git4subeditor` 把 Barotrauma 的 `.sub` 潜艇文件(gzip 压缩的 XML)转换成便于 Git 追踪的 XML,也能把 XML 打包回 `.sub`。
 转换会剥离并单独导出预览图、按字母顺序规范化无序集合属性,从而避免巨大的单行 diff 和无意义 diff。
 
-## 硬性规则:只用 CLI 模式
+## 硬性规则
 
 始终带上子命令调用,例如 `git4subeditor export "test.sub"`。
 
 不要运行不带参数的 `git4subeditor`:它启动交互模式 REPL,在非 TTY 环境会直接报错退出,也会阻塞自动化流程。
 交互模式专有的东西一律不要使用:裸命令、`tree`、`setting`(会用默认程序打开配置文件)、`github`、`?`。
 
+不要使用 `-f` / `--force`。所有确认、语言选择都必须由用户决定,你负责把提示转述给用户并询问,然后把用户的答复作为输入传给命令(见下文"回答提示")。
+
 ## 环境确认
 
 ```bash
 git4subeditor --version
-uv tool list
 ```
 
-没有安装时:
+找不到命令时**先询问用户是否安装**,得到同意后再执行:
 
 ```bash
 uv tool install git4subeditor
-uv tool upgrade git4subeditor
-uv tool update-shell   # 安装后提示找不到命令时执行, 然后重开终端
+uv tool update-shell   # 安装后仍提示找不到命令时执行, 然后重开终端
 ```
 
-所有命令都必须在 Mod 目录或其子目录下执行,项目配置 `git4subeditor.xml` 位于工作目录。
+不要在用户未同意时安装或升级工具。
+
+所有命令都在 Mod 目录或其子目录下执行,项目配置 `git4subeditor.xml` 位于工作目录。
 
 ## 命令一览
 
 | 命令 | 作用 |
 | --- | --- |
-| `git4subeditor init [-f]` | 初始化/更新工作区:写入 `.gitignore` 与 `git4subeditor.xml`,注册仓库内的 `.sub` |
+| `git4subeditor init` | 初始化/更新工作区:写入 `.gitignore` 与 `git4subeditor.xml`,登记仓库内的 `.sub` |
 | `git4subeditor sub [--tree]` | 列出已注册潜艇,`(U)` 未注册,`(M)` 已改动 |
-| `git4subeditor export [inputs...] [-o DIR] [-f] [--sort-attributes]` | `.sub` 导出为 XML 和预览图;不给输入时导出所有已改动的已注册潜艇 |
+| `git4subeditor export [inputs...] [-o DIR] [--sort-attributes]` | `.sub` 导出为 XML 和预览图;不给输入时导出所有已改动的已注册潜艇 |
 | `git4subeditor pack inputs... [-o FILE\|DIR] [--sort-attributes]` | XML 打包回 `.sub`;输入也可以是已注册的 `.sub`,此时按其 `xml` 属性打包 |
-| `git4subeditor unpack inputs... [-o DIR] [--stdout] [-f]` | 只解压 `.sub` 为原始 XML,很少使用 |
+| `git4subeditor unpack inputs... [-o DIR] [--stdout]` | 只解压 `.sub` 为原始 XML,很少使用 |
 
 退出码:`0` 成功,`1` 处理失败,`2` 用法错误。
 
-## 非交互约定
+## 回答提示
 
-- `init`、`export`、`unpack` 都有 `-f`,自动化时一律加上,否则会等待 `[y/N]` 或语言选择。
-- `pack` 没有 `--force`。目标 `.sub` 存在未提交改动时会询问是否覆盖,需要确认时用 `echo y | git4subeditor pack "test.xml"`。`pack` 覆盖前会把原文件备份成 `.sub.bak`。
-- 输出语言由 `git4subeditor.xml` 里的 `<language>` 决定(`cn`/`en`/`ru`),不影响命令行为。
-- `init` 会做一次联网版本检查(最多约 2 秒),失败只影响 banner 提示,不影响初始化。
-
-## 首次初始化
+`init`、`export`、`unpack`、`pack` 都可能停下来等待输入。做法是:先把提示和将要被改动的文件清单给用户看,征得同意后,再用管道按提示顺序传入答复。
 
 ```bash
-git init                      # 仓库不存在时
-git4subeditor init -f
-git4subeditor export -f       # 导出全部已注册潜艇
-git add .gitignore git4subeditor.xml *.xml
-git commit -m "chore: 初始化潜艇版本追踪"
+printf 'y\n' | git4subeditor pack "test.xml"      # 覆盖已改动的目标 .sub
+printf 'y\n' | git4subeditor export               # 导出改动清单里列出的潜艇
+printf 'cn\ny\ny\n' | git4subeditor init          # 先选语言, 再确认登记与同名处理
+```
+
+- 语言选择(`cn`/`en`/`ru`)只在配置里没有有效 `<language>` 时出现,必须让用户自己选。
+- `input()` 读到 EOF 等同于回答"否",对应步骤会被跳过且不打印成功信息。发现命令没有真正导出或登记,说明答复数量不够,把实际情况告诉用户后补上再运行。
+- 想先看清单又不想动文件时,可以用 `git4subeditor export </dev/null`,它只打印将要导出的潜艇然后停在 `[y/N]`,不会写任何文件。
+
+## 只在缺少配置时初始化
+
+先确认工作目录状态:
+
+```bash
+ls git4subeditor.xml
+git4subeditor sub --tree
+```
+
+- `git4subeditor.xml` 已存在:**不要运行 `init`**,直接按下面的导出与提交流程操作。
+- `git4subeditor.xml` 不存在:需要初始化,先询问用户是否登记仓库里的潜艇、用哪种语言,再执行:
+
+```bash
+printf 'cn\ny\ny\n' | git4subeditor init    # 语言按用户选择替换
+git4subeditor export
 ```
 
 `init` 会自动把 `*.sub`、`*.bak`、`*.png`、`history` 写进 `.gitignore`,所以 Git 只跟踪 XML 与 `git4subeditor.xml`,预览图不进仓库。
@@ -71,7 +87,7 @@ git commit -m "chore: 初始化潜艇版本追踪"
 ## 游戏内改完潜艇后
 
 ```bash
-git4subeditor export -f       # 只导出哈希变化的已注册潜艇
+git4subeditor export            # 提示确认时先问用户
 git status --short
 git diff -- '*.xml'
 ```
@@ -81,6 +97,14 @@ git diff -- '*.xml'
 - 先在游戏里保存潜艇,再导出;导出会重新计算哈希并写入配置。
 - **不要在这之前运行 `init`**。`init` 会把当前 `.sub` 的哈希直接记成新基线,之后 `export` 就认不出这些改动,新内容不会被导进 XML。
 - 只导出一个指定潜艇时传路径:`git4subeditor export "test/My Sub.sub"`。路径含空格必须加引号。
+
+## 发现未注册潜艇时
+
+`git4subeditor sub --tree` 输出里出现 `(U)` 标记,说明仓库里有 `.sub` 还没登记。
+
+1. 把带 `(U)` 的文件列给用户,询问是否添加。
+2. 用户同意后,先处理已有的 `(M)` 改动(先导出,再 `init`),否则 `init` 会把它们的当前哈希记成基线。
+3. 执行 `printf 'y\n' | git4subeditor init` 完成登记;如果命令还问了别的确认项(修改 MOD 根目录、Git 仓库路径、同名潜艇、移除已消失的潜艇),同样逐项询问用户后再补上答复重跑。
 
 ## 回退到历史版本
 
@@ -113,7 +137,7 @@ refactor(sub): 重排引擎室布线
 ## 注意事项
 
 - `checkval` 是游戏保存时写入的随机整数,每次保存都会变。这是正常现象,不要试图"修复"或提交时剔除。
-- `(M)` 表示 `.sub` 的哈希与配置里记录的不一致,即游戏内改动还没导出;`(U)` 表示文件存在但未注册,运行 `init -f` 可登记。
+- `(M)` 表示 `.sub` 的哈希与配置里记录的不一致,即游戏内改动还没导出;`(U)` 表示文件存在但未注册。
 - `git4subeditor.xml` 的 `<submarines>` 以 `path` 为标识,`name` 是可选属性且不参与输出显示,识别潜艇时用路径。
 - `<update latest="…" lastCheck="…" interval="…" />` 是版本检查缓存(`lastCheck` 为 UTC 的 `yyyymmddHH`,`interval` 单位为小时),不需要手工维护。
-- 同名的 `.sub` 会被当作不同潜艇分别注册,路径不同即可;导出/打包时按具体路径操作,避免打错文件。
+- 同名 `.sub` 会被当作不同潜艇分别注册,路径不同即可;导出/打包时按具体路径操作,避免打错文件。
