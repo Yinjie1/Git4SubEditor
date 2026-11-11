@@ -79,25 +79,6 @@ def _colorize(text: str, color: str, stream: TextIO | None) -> str:
     return text
 
 
-def build_banner(version: str, status: str | None = None) -> tuple[str, ...]:
-    """Build the banner with author and version beside the first lines.
-
-    Args:
-        version: Version text shown on the second line.
-        status: Optional update status shown below the version.
-
-    Returns:
-        Banner lines with trailing spaces removed.
-    """
-    lines: list[str] = [line.rstrip() for line in _BANNER.splitlines()]
-    text_column: int = max(len(lines[0]), len(lines[1])) + 4
-    lines[0] = f"{lines[0]:<{text_column}}by Yinjie"
-    lines[1] = f"{lines[1]:<{text_column}}{version}"
-    if status is not None:
-        lines[2] = f"{lines[2]:<{text_column}}{status}"
-    return tuple(lines)
-
-
 def print_banner(
     version: str,
     status: str | None = None,
@@ -113,7 +94,12 @@ def print_banner(
     """
     if sys.stdout is None:
         return
-    lines: tuple[str, ...] = build_banner(version, status)
+    lines: list[str] = [line.rstrip() for line in _BANNER.splitlines()]
+    text_column: int = max(len(lines[0]), len(lines[1])) + 4
+    lines[0] = f"{lines[0]:<{text_column}}by Yinjie"
+    lines[1] = f"{lines[1]:<{text_column}}{version}"
+    if status is not None:
+        lines[2] = f"{lines[2]:<{text_column}}{status}"
     columns: int = shutil.get_terminal_size(fallback=(80, 24)).columns
     text: str = f"Git4SubEditor by Yinjie {version}"
     if status is not None:
