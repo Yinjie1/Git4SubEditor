@@ -46,7 +46,7 @@ git4subeditor export "test/A.sub" "test/B.sub"
 
 1. 运行 `git4subeditor export`。它会先列出将要导出的潜艇,再问 `[y/N]`;把清单转述给用户,确认后再回答。
 2. 用 `git status --short` 和 `git diff -- "*.xml"` 看改了什么。
-3. 按改动写中文提交说明,格式 `type(scope): 说明`,例如 `feat(sub): 新增医疗舱与自动门`。概括这次改动的目的,不要罗列每处 diff,也不要写"更新 XML"。
+3. 按改动写中文提交说明,格式 `type(scope): 说明`,例如 `feat(sub): 新增医疗舱与自动门`。概括这次改动的目的,不要罗列每处 diff,也不要写"更新 XML",更不要写"更新 checkval 属性"。
 4. 提交。
 
 **导出前不要运行 `init`**。`init` 会把当前 `.sub` 的哈希直接记成新基线,之后再 `export` 就看不到这些改动,新内容永远进不了 XML。
