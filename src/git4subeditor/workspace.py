@@ -28,8 +28,8 @@ class SubmarineEntry:
             registry identity.
         preview: Preview image path relative to the workspace directory, or
             None when no preview is configured.
-        hash: SHA-256 hash of the submarine file recorded at registration, or
-            None when no hash is configured.
+        hash: First 16 hex characters of the submarine file SHA-256 digest
+            recorded at registration, or None when no hash is configured.
         xml: Exported XML path relative to the workspace directory, or None
             when the submarine has not been exported.
     """
@@ -223,9 +223,9 @@ def _relative_display(path: Path) -> str:
 
 
 def _file_hash(path: Path) -> str:
-    """Return the SHA-256 hex digest of a file."""
+    """Return the truncated SHA-256 hex digest of a file."""
     with path.open("rb") as handle:
-        return hashlib.file_digest(handle, "sha256").hexdigest()
+        return hashlib.file_digest(handle, "sha256").hexdigest()[:16]
 
 
 def refresh_submarine_metadata(submarines: tuple[SubmarineEntry, ...]) -> bool:
