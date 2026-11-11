@@ -18,7 +18,7 @@ from git4subeditor.l10n import (
     t,
 )
 from git4subeditor.subfile import SubFileError, unpack_sub
-from git4subeditor.utils import format_message, open_path, print_banner
+from git4subeditor.utils import check_update, format_message, open_path, print_banner
 from git4subeditor.workspace import (
     IGNORE_PATTERNS,
     InitializeError,
@@ -437,7 +437,7 @@ def _run_command(
 
     if args.command == "init":
         if show_banner:
-            print_banner(__version__)
+            print_banner(__version__, check_update(__version__))
         selected_language: str | None = None
         if configured_language() is None:
             selected_language = DEFAULT_LANGUAGE if args.force else _prompt_language()

@@ -95,6 +95,9 @@
   <message key="kind.gzip">gzip</message>
   <message key="kind.plain_xml">обычный XML</message>
   <message key="status.git_repo">Git repo: {path}</message>
+  <message key="update.latest">обновлений нет</message>
+  <message key="update.failed">время проверки обновлений истекло</message>
+  <message key="update.available">доступна новая версия: {version}</message>
 
   <message key="warning.current_not_repo">текущий каталог не является Git-репозиторием; используется {path}</message>
   <message key="warning.no_repo">Git-репозиторий не найден до корня мода; выполните 'git init' для инициализации</message>

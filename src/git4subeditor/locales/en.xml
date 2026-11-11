@@ -95,6 +95,9 @@
   <message key="kind.gzip">gzip</message>
   <message key="kind.plain_xml">plain XML</message>
   <message key="status.git_repo">Git repo: {path}</message>
+  <message key="update.latest">no updates available</message>
+  <message key="update.failed">update check timed out</message>
+  <message key="update.available">new version available: {version}</message>
 
   <message key="warning.current_not_repo">current directory is not a Git repo; using {path}</message>
   <message key="warning.no_repo">no Git repo found up to the MOD root; run 'git init' to initialize one</message>

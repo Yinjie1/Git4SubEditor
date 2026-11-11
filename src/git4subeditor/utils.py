@@ -1,11 +1,20 @@
 """Miscellaneous console and project utilities."""
 
+import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import TextIO
+from urllib.request import urlopen
+
+from git4subeditor.l10n import t
+
+_PYPI_URL: str = "https://pypi.org/pypi/git4subeditor/json"
+_UPDATE_TIMEOUT: float = 2.0
+_DIGITS = re.compile(r"\d+")
 
 _COLORS: dict[str, str] = {
     "yellow": "\033[33m",
@@ -79,11 +88,34 @@ def _colorize(text: str, color: str, stream: TextIO | None) -> str:
     return text
 
 
-def build_banner(version: str) -> tuple[str, ...]:
+def check_update(current: str) -> str:
+    """Return a localized update status for the banner.
+
+    Args:
+        current: Version of the running program.
+
+    Returns:
+        A localized message: no newer release, a newer release with its
+        version, or a failed check.
+    """
+    try:
+        with urlopen(_PYPI_URL, timeout=_UPDATE_TIMEOUT) as response:
+            latest: str = str(json.load(response)["info"]["version"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return t("update.failed")
+    if tuple(map(int, _DIGITS.findall(latest))) > tuple(
+        map(int, _DIGITS.findall(current))
+    ):
+        return t("update.available", version=latest)
+    return t("update.latest")
+
+
+def build_banner(version: str, status: str | None = None) -> tuple[str, ...]:
     """Build the banner with author and version beside the first lines.
 
     Args:
         version: Version text shown on the second line.
+        status: Optional update status shown below the version.
 
     Returns:
         Banner lines with trailing spaces removed.
@@ -92,22 +124,29 @@ def build_banner(version: str) -> tuple[str, ...]:
     text_column: int = max(len(lines[0]), len(lines[1])) + 4
     lines[0] = f"{lines[0]:<{text_column}}by Yinjie"
     lines[1] = f"{lines[1]:<{text_column}}{version}"
+    if status is not None:
+        lines[2] = f"{lines[2]:<{text_column}}{status}"
     return tuple(lines)
 
 
-def print_banner(version: str) -> None:
+def print_banner(version: str, status: str | None = None) -> None:
     """Print the banner, or a one-line fallback when the terminal is narrow.
 
     Args:
         version: Version text shown on the banner.
+        status: Optional update status shown below the version, or beside the
+            version in the one-line fallback.
     """
     if sys.stdout is None:
         return
-    lines: tuple[str, ...] = build_banner(version)
+    lines: tuple[str, ...] = build_banner(version, status)
     columns: int = shutil.get_terminal_size(fallback=(80, 24)).columns
     try:
         if columns < max(len(line) for line in lines):
-            print(f"Git4SubEditor by Yinjie {version}", end="\n")
+            text: str = f"Git4SubEditor by Yinjie {version}"
+            if status is not None:
+                text = f"{text} {status}"
+            print(text)
             return
         print("\n".join(lines))
     except UnicodeEncodeError:

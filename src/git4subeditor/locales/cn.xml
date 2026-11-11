@@ -93,6 +93,9 @@
   <message key="kind.gzip">gzip</message>
   <message key="kind.plain_xml">纯 XML</message>
   <message key="status.git_repo">Git repo: {path}</message>
+  <message key="update.latest">无可用更新</message>
+  <message key="update.failed">检查更新超时</message>
+  <message key="update.available">发现新版本: {version}</message>
 
   <message key="warning.current_not_repo">当前目录不是 Git 仓库; 使用 {path}</message>
   <message key="warning.no_repo">在模组根目录范围内未找到 Git 仓库; 请运行 'git init' 初始化</message>
