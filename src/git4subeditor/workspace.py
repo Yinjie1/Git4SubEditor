@@ -129,8 +129,8 @@ def load_workspace_info() -> WorkspaceInfo | None:
     )
 
 
-def update_status(current: str) -> str | None:
-    """Return a update status, reusing a recent check when possible.
+def update_status(current: str, force: bool = False) -> str | None:
+    """Return an update status, reusing a recent check when possible.
 
     The result is cached in the ``update`` element of ``git4subeditor.xml``:
     ``latest`` holds the detected version, ``lastCheck`` the UTC hour of the
@@ -139,6 +139,8 @@ def update_status(current: str) -> str | None:
 
     Args:
         current: Version of the running program.
+        force: Whether to query the published version even when the cached
+            check is still recent.
 
     Returns:
         A message about the published version, or None when the
@@ -170,7 +172,12 @@ def update_status(current: str) -> str | None:
             ).replace(tzinfo=UTC)
         except ValueError:
             pass
-    if not latest or checked is None or now - checked >= timedelta(hours=interval):
+    if (
+        force
+        or not latest
+        or checked is None
+        or now - checked >= timedelta(hours=interval)
+    ):
         try:
             with urlopen(_PYPI_URL, timeout=_UPDATE_TIMEOUT) as response:
                 latest = str(json.load(response)["info"]["version"])

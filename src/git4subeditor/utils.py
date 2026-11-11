@@ -98,23 +98,28 @@ def build_banner(version: str, status: str | None = None) -> tuple[str, ...]:
     return tuple(lines)
 
 
-def print_banner(version: str, status: str | None = None) -> None:
+def print_banner(
+    version: str,
+    status: str | None = None,
+    compact: bool = False,
+) -> None:
     """Print the banner, or a one-line fallback when the terminal is narrow.
 
     Args:
         version: Version text shown on the banner.
         status: Optional update status shown below the version, or beside the
             version in the one-line fallback.
+        compact: Whether to always print the one-line form.
     """
     if sys.stdout is None:
         return
     lines: tuple[str, ...] = build_banner(version, status)
     columns: int = shutil.get_terminal_size(fallback=(80, 24)).columns
+    text: str = f"Git4SubEditor by Yinjie {version}"
+    if status is not None:
+        text = f"{text} {status}"
     try:
-        if columns < max(len(line) for line in lines):
-            text: str = f"Git4SubEditor by Yinjie {version}"
-            if status is not None:
-                text = f"{text} {status}"
+        if compact or columns < max(len(line) for line in lines):
             print(text)
             return
         print("\n".join(lines))

@@ -440,7 +440,7 @@ def _run_command(
         if show_banner:
             print_banner(
                 f"{__version__} ({__release_date__})",
-                update_status(__version__),
+                update_status(__version__, force=True),
             )
         selected_language: str | None = None
         if configured_language() is None:

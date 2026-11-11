@@ -267,6 +267,13 @@ def run() -> int:
             print()
             continue
 
+        if args.command == "init":
+            print_banner(
+                f"{__version__} ({__release_date__})",
+                update_status(__version__, force=True),
+                compact=True,
+            )
+
         try:
             code: int = _run_command(args, show_banner=False)
         except KeyboardInterrupt:
