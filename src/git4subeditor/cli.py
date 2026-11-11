@@ -7,7 +7,7 @@ from dataclasses import dataclass, replace
 from functools import partial
 from pathlib import Path
 
-from git4subeditor import __version__
+from git4subeditor import __release_date__, __version__
 from git4subeditor.gitformat import _resolve_pack_output, export_sub, pack_sub
 from git4subeditor.l10n import (
     DEFAULT_LANGUAGE,
@@ -437,7 +437,10 @@ def _run_command(
 
     if args.command == "init":
         if show_banner:
-            print_banner(__version__, check_update(__version__))
+            print_banner(
+                f"{__version__} ({__release_date__})",
+                check_update(__version__),
+            )
         selected_language: str | None = None
         if configured_language() is None:
             selected_language = DEFAULT_LANGUAGE if args.force else _prompt_language()

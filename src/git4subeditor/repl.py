@@ -9,11 +9,11 @@ from functools import partial
 from pathlib import Path
 from typing import Any, cast
 
-from git4subeditor import __version__
+from git4subeditor import __release_date__, __version__
 from git4subeditor.cli import _run_command, build_parser
 from git4subeditor.l10n import resolve_language, set_language, t
 from git4subeditor.subfile import SubFileError
-from git4subeditor.utils import format_message, print_banner
+from git4subeditor.utils import check_update, format_message, print_banner
 from git4subeditor.workspace import (
     WorkspaceInfo,
     load_workspace_info,
@@ -173,7 +173,10 @@ def run() -> int:
         )
         return 2
 
-    print_banner(__version__)
+    print_banner(
+        f"{__version__} ({__release_date__})",
+        check_update(__version__),
+    )
     print()
     try:
         workspace: WorkspaceInfo | None = load_workspace_info()
