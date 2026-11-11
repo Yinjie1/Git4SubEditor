@@ -123,8 +123,8 @@ git4subeditor
 你将会看到如以下的界面
 ```
  ██████╗ ██╗████████╗    ██╗  ██╗    by Yinjie
-██╔════╝ ██║╚══██╔══╝    ██║  ██║    0.1.19
-██║  ███╗██║   ██║       ███████║
+██╔════╝ ██║╚══██╔══╝    ██║  ██║    0.1.38 (20261112)
+██║  ███╗██║   ██║       ███████║    无可用更新
 ██║   ██║██║   ██║       ╚════██║
 ╚██████╔╝██║   ██║            ██║
  ╚═════╝ ╚═╝   ╚═╝            ╚═╝
@@ -154,7 +154,8 @@ CWD: path_to/current_work_directory
   export <file.sub> [-o DIR]  解压 .sub 并转为 Git 友好的 XML
   pack <file.xml> [-o FILE]   打包 XML 为 .sub
   unpack <file.sub> [-o DIR]  仅解压 .sub 为原始 XML
-  q                           退出交互模式
+  setting                     打开工作区配置文件
+  github                      前往 Git4SubEditor 项目主页
 
 Tab 补全 · ↑↓ 历史 · Ctrl-R 搜索 · Ctrl-D 退出 · ? 帮助
 g4s:test>
