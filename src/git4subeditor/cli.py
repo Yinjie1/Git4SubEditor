@@ -690,6 +690,15 @@ def _run_command(
                         )
                     )
             else:
+                forced_output: Path | None = None
+                if registry is not None:
+                    registered_sub: _SubmarineEntry | None = registry.get(src.resolve())
+                    if (
+                        registered_sub is not None
+                        and registered_sub.xml_path is not None
+                    ):
+                        forced_output = src
+                        src = registered_sub.xml_path
                 matches: tuple[_SubmarineEntry, ...] = (
                     tuple(
                         entry
@@ -699,17 +708,25 @@ def _run_command(
                     if registry is not None
                     else ()
                 )
-                if args.output is None and matches:
-                    if len(matches) > 1:
-                        paths: str = ", ".join(entry.path for entry in matches)
-                        raise SubFileError(t("err.pack_xml_ambiguous", paths=paths))
-                    entry: _SubmarineEntry | None = matches[0]
-                    pack_output: Path | None = (Path.cwd() / entry.path).parent
-                else:
+                entry: _SubmarineEntry | None
+                pack_output: Path | None
+                if args.output is not None:
                     entry = (
                         matches[0] if matches else _require_registered(src, registry)
                     )
                     pack_output = args.output
+                elif forced_output is not None:
+                    entry = matches[0]
+                    pack_output = forced_output
+                elif matches:
+                    if len(matches) > 1:
+                        paths: str = ", ".join(entry.path for entry in matches)
+                        raise SubFileError(t("err.pack_xml_ambiguous", paths=paths))
+                    entry = matches[0]
+                    pack_output = (Path.cwd() / entry.path).parent
+                else:
+                    entry = _require_registered(src, registry)
+                    pack_output = None
                 preview_override: Path | None = (
                     entry.preview_path if entry is not None else None
                 )

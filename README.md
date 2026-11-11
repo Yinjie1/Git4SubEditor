@@ -63,7 +63,7 @@ uv --version
 安装一个 Python 解释器:
 ```bash
 # 最后一个是版本, 版本不要太低
-uv python install 3.15
+uv python install 3.13
 ```
 ### 3. 安装 Git4SubEditor
 运行以下命令进行安装:
