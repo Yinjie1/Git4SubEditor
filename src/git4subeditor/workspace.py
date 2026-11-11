@@ -306,7 +306,7 @@ def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
     if not tree:
         for submarine, status in listed:
             path_text: str = _relative_display(workspace_root / submarine.path)
-            print(f"{submarine.name}: {path_text}{_status_suffix(status)}")
+            print(f"{path_text}{_status_suffix(status)}")
         return
 
     entries: list[_TreeEntry] = []
@@ -350,10 +350,7 @@ def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
             index += 1
             connector: str = "└── " if index == total else "├── "
             filename: str = Path(submarine.path).name
-            print(
-                f"{prefix}{connector}{submarine.name}: {filename}"
-                f"{_status_suffix(status)}"
-            )
+            print(f"{prefix}{connector}{filename}{_status_suffix(status)}")
 
         for directory_name in directory_names:
             index += 1

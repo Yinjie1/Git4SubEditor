@@ -205,7 +205,7 @@ def _confirm_duplicate_names(
     """Show submarine files that share a name and ask to import them anyway."""
     print(t("init.duplicate_header"))
     for group in groups:
-        print(f"  {group[0].name}:")
+        print(f"  {Path(group[0].path).stem}:")
         for entry in group:
             print(f"    {entry.path}")
     sys.stdout.flush()
@@ -229,10 +229,10 @@ def _confirm_submarines(
     if registered:
         print(t("init.registered_header"))
         for entry in registered:
-            print(f"  {entry.name}: {entry.path}")
+            print(f"  {entry.path}")
     print(t("init.pending_header"))
     for entry in pending:
-        print(f"  {entry.name}: {entry.path}")
+        print(f"  {entry.path}")
     try:
         answer: str = input(t("prompt.submarines"))
     except EOFError:
@@ -247,7 +247,7 @@ def _confirm_submarine_removals(
     """Show registered submarines whose files are gone and ask to remove them."""
     print(t("init.removed_header"))
     for entry in removed:
-        print(f"  {entry.name}: {entry.path}")
+        print(f"  {entry.path}")
     try:
         answer: str = input(t("prompt.remove_submarines"))
     except EOFError:
@@ -594,7 +594,7 @@ def _run_command(
             return 0
         print(t("status.export_changed_header"))
         for entry in targets:
-            print(f"  {entry.name}: {entry.path}")
+            print(f"  {entry.path}")
         if not args.force:
             try:
                 answer: str = input(t("prompt.export_changed"))
@@ -644,7 +644,7 @@ def _run_command(
                         answer: str = input(
                             t(
                                 "prompt.xml_update",
-                                name=entry.name if entry else src.stem,
+                                path=_relative_display(src),
                                 old=_relative_display(recorded_xml),
                                 new=_relative_display(xml_path),
                             )

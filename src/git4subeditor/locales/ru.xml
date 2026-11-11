@@ -77,7 +77,7 @@
   <message key="err.stdout_single">--stdout принимает только один входной файл</message>
   <message key="err.output_multi">при упаковке нескольких файлов --output должен указывать на существующий каталог</message>
   <message key="prompt.overwrite">{path} уже существует. Перезаписать? [y/N] </message>
-  <message key="prompt.xml_update">Обновить XML-путь {name}: {old} -> {new}. Продолжить? [y/N] </message>
+  <message key="prompt.xml_update">Обновить XML-путь {path}: {old} -> {new}. Продолжить? [y/N] </message>
   <message key="prompt.submarines">Обновить эти записи подводных лодок? [y/N] </message>
   <message key="prompt.remove_submarines">Удалить эти записи подводных лодок? [y/N] </message>
   <message key="prompt.mod_root_changed">Корень мода: {old} -> {new}. Обновить? [y/N] </message>
