@@ -53,33 +53,34 @@ uv tool update-shell   # 安装后仍提示找不到命令时执行, 然后重�
 
 ## 回答提示
 
-`init`、`export`、`unpack`、`pack` 都可能停下来等待输入。做法是:先把提示和将要被改动的文件清单给用户看,征得同意后,再用管道按提示顺序传入答复。
+`init`、`export`、`unpack`、`pack` 都可能停下来等待输入。做法是:先把提示和受影响文件清单转述给用户,征得同意后,再按当前 shell 的写法把答复传给命令。
 
-```bash
-printf 'y\n' | git4subeditor pack "test.xml"      # 覆盖已改动的目标 .sub
-printf 'y\n' | git4subeditor export               # 导出改动清单里列出的潜艇
-printf 'cn\ny\ny\n' | git4subeditor init          # 先选语言, 再确认登记与同名处理
-```
+| Shell | 传入一个 `y` | 传入多个答复 |
+| --- | --- | --- |
+| bash / zsh | `printf 'y\n' \| git4subeditor pack "test.xml"` | `printf 'y\ny\n' \| git4subeditor init` |
+| cmd.exe | `echo y\| git4subeditor pack "test.xml"` | `(echo y& echo y)\| git4subeditor init` |
+| PowerShell | `'y' \| git4subeditor pack "test.xml"` | `'y','y' \| git4subeditor init` |
 
+- cmd 的 `echo y` 会在答复末尾多一个空格,程序会去掉首尾空白;`echo y` 与 `|` 之间不要加空格。
 - 语言选择(`cn`/`en`/`ru`)只在配置里没有有效 `<language>` 时出现,必须让用户自己选。
 - `input()` 读到 EOF 等同于回答"否",对应步骤会被跳过且不打印成功信息。发现命令没有真正导出或登记,说明答复数量不够,把实际情况告诉用户后补上再运行。
-- 想先看清单又不想动文件时,可以用 `git4subeditor export </dev/null`,它只打印将要导出的潜艇然后停在 `[y/N]`,不会写任何文件。
+- 想了解当前状态用 `git4subeditor sub --tree`,它只读不写。
 
 ## 只在缺少配置时初始化
 
-先确认工作目录状态:
+先查看当前状态(只读):
 
 ```bash
-ls git4subeditor.xml
 git4subeditor sub --tree
 ```
 
-- `git4subeditor.xml` 已存在:**不要运行 `init`**,直接按下面的导出与提交流程操作。
-- `git4subeditor.xml` 不存在:需要初始化,先询问用户是否登记仓库里的潜艇、用哪种语言,再执行:
+- 退出码为 `0` 且有输出:配置已存在,**不要运行 `init`**,直接按下面的导出与提交流程操作。
+- 退出码为 `1` 且提示工作区未初始化:缺少 `git4subeditor.xml`,需要初始化。先询问用户是否登记仓库里的潜艇、用哪种语言,再执行 `git4subeditor init`,并按上表写法传入语言和确认答复。
+
+登记完成后,**自动导出不会做任何事**:`init` 已经把当前 `.sub` 的哈希记成基线,`export` 无输入时只导出哈希变化的潜艇。首次导出要显式列出路径(路径取自 `git4subeditor sub --tree` 的输出或目录清单):
 
 ```bash
-printf 'cn\ny\ny\n' | git4subeditor init    # 语言按用户选择替换
-git4subeditor export
+git4subeditor export "test/My Sub1.sub" "test/My Sub2.sub"
 ```
 
 `init` 会自动把 `*.sub`、`*.bak`、`*.png`、`history` 写进 `.gitignore`,所以 Git 只跟踪 XML 与 `git4subeditor.xml`,预览图不进仓库。
@@ -89,7 +90,7 @@ git4subeditor export
 ```bash
 git4subeditor export            # 提示确认时先问用户
 git status --short
-git diff -- '*.xml'
+git diff -- "*.xml"
 ```
 
 要点:
@@ -104,12 +105,12 @@ git diff -- '*.xml'
 
 1. 把带 `(U)` 的文件列给用户,询问是否添加。
 2. 用户同意后,先处理已有的 `(M)` 改动(先导出,再 `init`),否则 `init` 会把它们的当前哈希记成基线。
-3. 执行 `printf 'y\n' | git4subeditor init` 完成登记;如果命令还问了别的确认项(修改 MOD 根目录、Git 仓库路径、同名潜艇、移除已消失的潜艇),同样逐项询问用户后再补上答复重跑。
+3. 询问用户同意后执行 `git4subeditor init`,并按上表写法把 `y` 传给它的确认提示。如果命令还问了别的确认项(修改 MOD 根目录、Git 仓库路径、同名潜艇、移除已消失的潜艇),同样逐项询问用户后再补上答复重跑。
 
 ## 回退到历史版本
 
 ```bash
-git checkout <commit> -- "test.xml"
+git checkout COMMIT_SHA -- "test.xml"
 git4subeditor pack "test.xml"          # 生成 test.sub, 原文件备份为 test.sub.bak
 git4subeditor pack "test.sub"          # 已注册 .sub 且配置了 xml 属性时, 按其 xml 打包
 ```
@@ -118,7 +119,7 @@ git4subeditor pack "test.sub"          # 已注册 .sub 且配置了 xml 属性�
 
 ## 写提交说明
 
-该项目的提交说明使用中文,格式为 `type(scope): 说明`,直接用 `git diff -- '*.xml'` 的内容概括改动:
+该项目的提交说明使用中文,格式为 `type(scope): 说明`,直接用 `git diff -- "*.xml"` 的内容概括改动:
 
 - 新增部件、房间、物品用 `feat`
 - 调整数值、接线、布局用 `fix` 或 `refactor`
