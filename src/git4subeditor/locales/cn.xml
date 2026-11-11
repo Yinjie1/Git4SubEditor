@@ -57,7 +57,7 @@
   <message key="command.unpack">从 .sub 文件中提取原始 XML</message>
   <message key="command.export">将 .sub 文件导出为规范化 XML 和预览图</message>
   <message key="command.pack">将导出的 XML 打包回 .sub 文件</message>
-  <message key="command.sub">列出已注册潜艇</message>
+  <message key="command.show">列出已注册潜艇</message>
 
   <message key="arg.inputs.sub">一个或多个 .sub 文件</message>
   <message key="arg.inputs.xml">一个或多个导出的 XML 文件</message>

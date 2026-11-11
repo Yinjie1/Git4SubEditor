@@ -59,7 +59,7 @@
   <message key="command.unpack">извлечь исходный XML из файлов .sub</message>
   <message key="command.export">экспортировать .sub в канонический XML и изображение предпросмотра</message>
   <message key="command.pack">упаковать экспортированный XML обратно в .sub</message>
-  <message key="command.sub">список зарегистрированных подводных лодок</message>
+  <message key="command.show">список зарегистрированных подводных лодок</message>
 
   <message key="arg.inputs.sub">один или несколько файлов .sub</message>
   <message key="arg.inputs.xml">один или несколько экспортированных XML-файлов</message>

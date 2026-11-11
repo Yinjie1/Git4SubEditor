@@ -83,11 +83,11 @@ def build_parser() -> argparse.ArgumentParser:
         help=t("arg.force_init"),
     )
 
-    sub = subparsers.add_parser(
-        "sub",
-        help=t("command.sub"),
+    show = subparsers.add_parser(
+        "show",
+        help=t("command.show"),
     )
-    sub.add_argument(
+    show.add_argument(
         "--tree",
         action="store_true",
         help=t("arg.tree"),
@@ -424,7 +424,7 @@ def _run_command(
             return 1
         return 0
 
-    if args.command == "sub":
+    if args.command == "show":
         try:
             info = load_workspace_info()
         except SubFileError as exc:

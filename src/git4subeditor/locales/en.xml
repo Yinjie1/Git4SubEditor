@@ -59,7 +59,7 @@
   <message key="command.unpack">extract raw XML from .sub files</message>
   <message key="command.export">export a .sub file as canonical XML plus a preview image</message>
   <message key="command.pack">pack an exported XML file back into a .sub file</message>
-  <message key="command.sub">list registered submarines</message>
+  <message key="command.show">list registered submarines</message>
 
   <message key="arg.inputs.sub">one or more .sub files</message>
   <message key="arg.inputs.xml">one or more exported XML files</message>
