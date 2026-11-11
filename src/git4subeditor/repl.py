@@ -13,11 +13,12 @@ from git4subeditor import __release_date__, __version__
 from git4subeditor.cli import _run_command, build_parser
 from git4subeditor.l10n import resolve_language, set_language, t
 from git4subeditor.subfile import SubFileError
-from git4subeditor.utils import check_update, format_message, print_banner
+from git4subeditor.utils import format_message, print_banner
 from git4subeditor.workspace import (
     WorkspaceInfo,
     load_workspace_info,
     print_submarine_paths,
+    update_status,
 )
 
 _COMMANDS: tuple[str, ...] = (
@@ -175,7 +176,7 @@ def run() -> int:
 
     print_banner(
         f"{__version__} ({__release_date__})",
-        check_update(__version__),
+        update_status(__version__),
     )
     print()
     try:

@@ -1,15 +1,20 @@
 """Workspace configuration, initialization, and registered submarine display."""
 
 import hashlib
+import json
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from urllib.request import urlopen
 
-from git4subeditor import __version__
 from git4subeditor.l10n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, t
 from git4subeditor.subfile import SubFileError
 from git4subeditor.utils import format_message
+
+_PYPI_URL: str = "https://pypi.org/pypi/git4subeditor/json"
+_UPDATE_TIMEOUT: float = 2.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,6 +127,70 @@ def load_workspace_info() -> WorkspaceInfo | None:
         mod_root=mod_root,
         submarines=tuple(submarines),
     )
+
+
+def update_status(current: str) -> str | None:
+    """Return a update status, reusing a recent check when possible.
+
+    The result is cached in the ``update`` element of ``git4subeditor.xml``:
+    ``latest`` holds the detected version, ``lastCheck`` the UTC hour of the
+    last successful check as ``yyyymmddHH``, and ``interval`` the minimum
+    hours between checks (24 when missing or invalid).
+
+    Args:
+        current: Version of the running program.
+
+    Returns:
+        A message about the published version, or None when the
+        project configuration cannot be parsed.
+    """
+    path = Path.cwd() / "git4subeditor.xml"
+    try:
+        parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
+        root: ET.Element | None = ET.parse(path, parser=parser).getroot()
+    except FileNotFoundError:
+        root = None
+    except ET.ParseError:
+        return None
+
+    element: ET.Element | None = root.find("update") if root is not None else None
+    try:
+        interval: int = (
+            int(element.get("interval") or 24) if element is not None else 24
+        )
+    except ValueError:
+        interval = 24
+    latest: str = (element.get("latest") or "").strip() if element is not None else ""
+    now: datetime = datetime.now(UTC)
+    checked: datetime | None = None
+    if element is not None:
+        try:
+            checked = datetime.strptime(
+                element.get("lastCheck") or "", "%Y%m%d%H"
+            ).replace(tzinfo=UTC)
+        except ValueError:
+            pass
+    if not latest or checked is None or now - checked >= timedelta(hours=interval):
+        try:
+            with urlopen(_PYPI_URL, timeout=_UPDATE_TIMEOUT) as response:
+                latest = str(json.load(response)["info"]["version"])
+        except (OSError, ValueError, KeyError, TypeError):
+            return t("update.failed")
+        if root is not None:
+            if element is None:
+                element = ET.SubElement(root, "update")
+            element.set("latest", latest)
+            element.set("lastCheck", now.strftime("%Y%m%d%H"))
+            element.set("interval", str(interval))
+            _write_project_config(path, root)
+
+    try:
+        newer: bool = tuple(map(int, latest.split("."))) > tuple(
+            map(int, current.split("."))
+        )
+    except ValueError:
+        newer = latest != current
+    return t("update.available", version=latest) if newer else t("update.latest")
 
 
 def _split_path_text(path_text: str) -> list[str]:
@@ -380,8 +449,9 @@ def initialize_project(
     existing file is missing patterns, they are appended in a marked block.
     Existing content is never rewritten.
 
-    Existing user preferences are preserved. The ``gitRepo``, ``modRoot``,
-    and ``version`` fields are updated. The project name is taken from the
+    Existing user preferences are preserved. The ``gitRepo`` and ``modRoot``
+    fields are updated, and the obsolete ``version`` element is removed. The
+    project name is taken from the
     nearest ancestor directory containing ``filelist.xml``. After the Git
     repository is located, ``.sub`` files below its root are registered in
     the ``submarines`` section using paths relative to the workspace. Existing
@@ -717,7 +787,6 @@ def _create_project_config(
         _set_config_value(root, "language", selected_language)
         _set_config_value(root, "gitRepo", repository_path)
         _set_config_value(root, "modRoot", mod_root_path)
-        _set_config_value(root, "version", __version__)
         submarines, unregistered, modified, _ = _detect_submarines(
             None, repository_root, base
         )
@@ -768,10 +837,11 @@ def _create_project_config(
         not removed or confirm_removals is None or confirm_removals(removed)
     )
     changed: bool = False
-    legacy: ET.Element | None = root.find("gitRepository")
-    if legacy is not None:
-        root.remove(legacy)
-        changed = True
+    for obsolete in ("gitRepository", "version"):
+        element: ET.Element | None = root.find(obsolete)
+        if element is not None:
+            root.remove(element)
+            changed = True
     if language is not None:
         selected_language = (
             language if language in SUPPORTED_LANGUAGES else DEFAULT_LANGUAGE
@@ -788,7 +858,6 @@ def _create_project_config(
             changed |= _set_config_value(root, "language", DEFAULT_LANGUAGE)
     changed |= _set_config_value(root, "gitRepo", repository_path)
     changed |= _set_config_value(root, "modRoot", mod_root_path)
-    changed |= _set_config_value(root, "version", __version__)
     submarines_updated: bool = False
     if update_submarines or remove_submarines:
         submarines_updated = _sync_submarines(

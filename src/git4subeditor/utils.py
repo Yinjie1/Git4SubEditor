@@ -1,20 +1,11 @@
 """Miscellaneous console and project utilities."""
 
-import json
 import os
-import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import TextIO
-from urllib.request import urlopen
-
-from git4subeditor.l10n import t
-
-_PYPI_URL: str = "https://pypi.org/pypi/git4subeditor/json"
-_UPDATE_TIMEOUT: float = 2.0
-_DIGITS = re.compile(r"\d+")
 
 _COLORS: dict[str, str] = {
     "yellow": "\033[33m",
@@ -86,28 +77,6 @@ def _colorize(text: str, color: str, stream: TextIO | None) -> str:
     if _supports_color(stream):
         return f"{color}{text}{_RESET}"
     return text
-
-
-def check_update(current: str) -> str:
-    """Return a localized update status for the banner.
-
-    Args:
-        current: Version of the running program.
-
-    Returns:
-        A localized message: no newer release, a newer release with its
-        version, or a failed check.
-    """
-    try:
-        with urlopen(_PYPI_URL, timeout=_UPDATE_TIMEOUT) as response:
-            latest: str = str(json.load(response)["info"]["version"])
-    except (OSError, ValueError, KeyError, TypeError):
-        return t("update.failed")
-    if tuple(map(int, _DIGITS.findall(latest))) > tuple(
-        map(int, _DIGITS.findall(current))
-    ):
-        return t("update.available", version=latest)
-    return t("update.latest")
 
 
 def build_banner(version: str, status: str | None = None) -> tuple[str, ...]:

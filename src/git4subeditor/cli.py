@@ -18,7 +18,7 @@ from git4subeditor.l10n import (
     t,
 )
 from git4subeditor.subfile import SubFileError, unpack_sub
-from git4subeditor.utils import check_update, format_message, open_path, print_banner
+from git4subeditor.utils import format_message, open_path, print_banner
 from git4subeditor.workspace import (
     IGNORE_PATTERNS,
     InitializeError,
@@ -31,6 +31,7 @@ from git4subeditor.workspace import (
     print_submarine_paths,
     read_config_root,
     refresh_submarine_metadata,
+    update_status,
 )
 
 
@@ -439,7 +440,7 @@ def _run_command(
         if show_banner:
             print_banner(
                 f"{__version__} ({__release_date__})",
-                check_update(__version__),
+                update_status(__version__),
             )
         selected_language: str | None = None
         if configured_language() is None:
