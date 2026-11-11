@@ -13,7 +13,7 @@ from git4subeditor import __release_date__, __version__
 from git4subeditor.cli import _run_command, build_parser
 from git4subeditor.l10n import resolve_language, set_language, t
 from git4subeditor.subfile import SubFileError
-from git4subeditor.utils import format_message, print_banner
+from git4subeditor.utils import format_message, open_path, print_banner
 from git4subeditor.workspace import (
     WorkspaceInfo,
     load_workspace_info,
@@ -28,6 +28,7 @@ _COMMANDS: tuple[str, ...] = (
     "unpack",
     "tree",
     "setting",
+    "github",
 )
 _HELP_TAG = re.compile(r"<(title|cmd)>(.*?)</\1>")
 
@@ -61,10 +62,11 @@ def _print_command_list() -> None:
     commands: tuple[tuple[str, str], ...] = (
         ("init", t("repl.command.init")),
         ("tree", t("repl.command.tree")),
-        ("setting", t("repl.command.setting")),
         ("export <file.sub> [-o DIR]", t("repl.command.export")),
         ("pack <file.xml> [-o FILE]", t("repl.command.pack")),
         ("unpack <file.sub> [-o DIR]", t("repl.command.unpack")),
+        ("setting", t("repl.command.setting")),
+        ("github", t("repl.command.github")),
     )
     columns: int = shutil.get_terminal_size(fallback=(80, 24)).columns
     max_command: int = max(len(syntax) for syntax, _ in commands)
@@ -257,6 +259,9 @@ def run() -> int:
                 print(t("repl.workspace_missing"))
             else:
                 print_submarine_paths(workspace)
+            continue
+        if name == "github":
+            open_path("https://github.com/Yinjie1/Git4SubEditor")
             continue
 
         try:

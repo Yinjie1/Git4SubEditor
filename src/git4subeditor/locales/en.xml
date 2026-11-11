@@ -14,6 +14,7 @@
   <message key="repl.command.unpack">extract .sub as raw XML only</message>
   <message key="repl.command.tree">recursively search and show all submarines in the repository</message>
   <message key="repl.command.setting">open workspace configuration file</message>
+  <message key="repl.command.github">go to the Git4SubEditor project page</message>
   <message key="repl.hint">Tab complete · ↑↓ history · Ctrl-R search · Ctrl-D quit · ? help</message>
   <message key="repl.help"><![CDATA[<title>tree</title>
   Show submarine .sub files in the Git repository as a directory tree.

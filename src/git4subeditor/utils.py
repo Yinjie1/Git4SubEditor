@@ -123,17 +123,17 @@ def _supports_color(stream: TextIO | None) -> bool:
         return False
 
 
-def open_path(path: Path) -> None:
-    """Open a file with the default application.
+def open_path(target: Path | str) -> None:
+    """Open a file or URL with the default application.
 
     Args:
-        path: File to open.
+        target: File path or URL to open.
     """
     if sys.platform == "win32":
         # A detached launcher keeps the opened application from sharing the
         # console, so it cannot move the cursor of the interactive prompt.
         subprocess.Popen(
-            ["cmd", "/c", "start", "", str(path)],
+            ["cmd", "/c", "start", "", str(target)],
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -141,6 +141,6 @@ def open_path(path: Path) -> None:
             close_fds=True,
         )
     elif sys.platform == "darwin":
-        subprocess.Popen(["open", str(path)])
+        subprocess.Popen(["open", str(target)])
     else:
-        subprocess.Popen(["xdg-open", str(path)])
+        subprocess.Popen(["xdg-open", str(target)])
