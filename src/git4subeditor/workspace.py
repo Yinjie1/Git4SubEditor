@@ -265,43 +265,83 @@ def _status_suffix(status: str | None) -> str:
     """Return a colored status suffix for a listed submarine."""
     if status is None:
         return ""
-    color: str = "red" if status == "U" else "yellow"
+    color: str = "red" if status in {"U", "D"} else "yellow"
     return f" {format_message(f'({status})', color=color)}"
 
 
-def print_submarine_paths(info: WorkspaceInfo, tree: bool = True) -> None:
-    """Print all submarine paths under the repository.
+def print_submarine_paths(
+    info: WorkspaceInfo,
+    tree: bool = True,
+    suffix: str = "sub",
+) -> None:
+    """Print files under the repository.
 
-    Paths are shown relative to the workspace directory. Unregistered
-    submarine files are marked with a red ``(U)`` suffix.
-    Registered files whose hash changed are marked with a yellow ``(M)``.
+    ``sub`` files are scanned below the Git repository root; unregistered files
+    are marked with a red ``(U)`` suffix and registered files whose hash
+    changed with a yellow ``(M)``. ``xml`` files are taken from the ``xml``
+    attribute of registered submarines and marked with a red ``(D)`` when the
+    file is missing. Other extensions are scanned and printed without markers.
 
     Args:
         info: Workspace information containing registered submarines.
         tree: Whether to print a directory tree. When False, print files in
             path order.
+        suffix: File extension to list, with or without the leading dot.
     """
+    suffix = suffix if suffix.startswith(".") else f".{suffix}"
     root_label: str = info.git_repo or "."
     workspace_root: Path = Path.cwd()
     root_path: Path = workspace_root / root_label
     root_path_resolved: Path = root_path.resolve()
-    registered = {entry.path: entry for entry in info.submarines}
-    scanned_entries, unregistered, modified, _ = _detect_submarines(
-        read_config_root(),
-        root_path_resolved,
-        workspace_root,
-    )
-    unregistered_paths: set[str] = {entry.path for entry in unregistered}
-    modified_paths: set[str] = {entry.path for entry in modified}
     listed: list[tuple[SubmarineEntry, str | None]] = []
-    for scanned in scanned_entries:
-        entry: SubmarineEntry = registered.get(scanned.path) or scanned
-        status: str | None = None
-        if scanned.path in unregistered_paths:
-            status = "U"
-        elif scanned.path in modified_paths:
-            status = "M"
-        listed.append((entry, status))
+    if suffix.casefold() == ".sub":
+        registered = {entry.path: entry for entry in info.submarines}
+        scanned_entries, unregistered, modified, _ = _detect_submarines(
+            read_config_root(),
+            root_path_resolved,
+            workspace_root,
+        )
+        unregistered_paths: set[str] = {entry.path for entry in unregistered}
+        modified_paths: set[str] = {entry.path for entry in modified}
+        for scanned in scanned_entries:
+            entry: SubmarineEntry = registered.get(scanned.path) or scanned
+            status: str | None = None
+            if scanned.path in unregistered_paths:
+                status = "U"
+            elif scanned.path in modified_paths:
+                status = "M"
+            listed.append((entry, status))
+    elif suffix.casefold() == ".xml":
+        for submarine in info.submarines:
+            if submarine.xml is None:
+                continue
+            exists: bool = (workspace_root / submarine.xml).is_file()
+            listed.append(
+                (
+                    SubmarineEntry(
+                        name=Path(submarine.xml).stem,
+                        path=submarine.xml,
+                    ),
+                    None if exists else "D",
+                )
+            )
+        listed.sort(key=lambda item: item[0].path.casefold())
+    else:
+        for path in root_path_resolved.rglob(f"*{suffix}"):
+            if not path.is_file():
+                continue
+            if ".git" in path.relative_to(root_path_resolved).parts[:-1]:
+                continue
+            listed.append(
+                (
+                    SubmarineEntry(
+                        name=path.stem,
+                        path=_relative_path(workspace_root.resolve(), path.resolve()),
+                    ),
+                    None,
+                )
+            )
+        listed.sort(key=lambda item: item[0].path.casefold())
 
     if not tree:
         for submarine, status in listed:
