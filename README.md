@@ -106,13 +106,13 @@ git4subeditor init
   <language>cn</language>
   <gitRepo>../..</gitRepo>
   <modRoot>../..</modRoot>
-  <version>0.1.19</version>
   <submarines>
     <submarine name="自定义名称" path="../../test/Git test.sub" preview="../../test/Git test.png" hash="..." />
     <submarine path="../Git test2.sub" preview="../Git test2.png" hash="..." />
     <submarine path="Git test3.sub" preview="Git test3.png" hash="..." />
     <submarine path="tttt/Git test3.sub" preview="tttt/Git test4.png" hash="..." />
   </submarines>
+  <update latest="0.2.11" lastCheck="2026111400" interval="24" />
 </git4subeditor>
 ```
 ### 2. 交互模式
@@ -123,7 +123,7 @@ git4subeditor
 你将会看到如以下的界面
 ```
  ██████╗ ██╗████████╗    ██╗  ██╗    by Yinjie
-██╔════╝ ██║╚══██╔══╝    ██║  ██║    0.1.38 (20261112)
+██╔════╝ ██║╚══██╔══╝    ██║  ██║    0.2.11 (20261112)
 ██║  ███╗██║   ██║       ███████║    无可用更新
 ██║   ██║██║   ██║       ╚════██║
 ╚██████╔╝██║   ██║            ██║
@@ -161,7 +161,7 @@ Tab 补全 · ↑↓ 历史 · Ctrl-R 搜索 · Ctrl-D 退出 · ? 帮助
 g4s:test>
 ```
 其中的潜艇 `.sub` 文件目录树, 是以 **Git 仓库**所在目录为根目录递归搜索得到的, 目录以相对路径显示. 示例中的目录结构是为了展示刻意制造的, 不建议搞这么复杂.  
-其中未注册潜艇带有绿色标识 `(U)`. 已注册潜艇在初始化或 `export` 时, 会自动计算并记录哈希值到 `git4subeditor.xml` 中, 生成目录树时会再次计算哈希, 若潜艇发生改动, 哈希会发生改变, 发生改动的潜艇带有黄色标识 `(M)`. 已注册但不存在的潜艇带有红色标识 `(D)`.
+其中未注册潜艇带有绿色标识 `(U)`. 已注册潜艇在初始化或 `export` 时, 会自动计算并记录哈希值到 `git4subeditor.xml` 中, 生成目录树时会再次计算哈希, 若潜艇发生改动, 哈希会发生改变, 发生改动的潜艇带有黄色标识 `(M)`. 已注册但文件缺失的潜艇带有红色标识 `(D)`.
 ### 3. sub 转 XML
 若你的潜艇文件为`test.sub`, 执行命令:
 ```bash
