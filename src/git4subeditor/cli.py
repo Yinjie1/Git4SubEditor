@@ -94,8 +94,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     subparsers.add_parser(
-        "setting",
-        help=t("command.setting"),
+        "config",
+        help=t("command.config"),
     )
 
     unpack = subparsers.add_parser(
@@ -403,7 +403,7 @@ def _run_command(
     Returns:
         Process exit code: 0 on success, 1 if any input failed, 2 on bad usage.
     """
-    if args.command == "setting":
+    if args.command == "config":
         path: Path = Path.cwd() / "git4subeditor.xml"
         if not path.exists():
             print(

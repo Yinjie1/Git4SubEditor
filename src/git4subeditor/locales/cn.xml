@@ -13,7 +13,7 @@
   <message key="repl.command.pack">打包 XML 为 .sub</message>
   <message key="repl.command.unpack">仅解压 .sub 为原始 XML</message>
   <message key="repl.command.show">递归搜索并显示仓库下所有潜艇</message>
-  <message key="repl.command.setting">打开工作区配置文件</message>
+  <message key="repl.command.config">打开工作区配置文件</message>
   <message key="repl.command.github">前往 Git4SubEditor 项目主页</message>
   <message key="repl.hint">Tab 补全 · ↑↓ 历史 · Ctrl-R 搜索 · Ctrl-D 退出 · ? 帮助</message>
   <message key="repl.help"><![CDATA[<title>show</title>
@@ -145,7 +145,7 @@
   <message key="err.pack_xml_ambiguous">该 XML 路径对应多个潜艇: {paths}</message>
   <message key="warning.pack_duplicate_name">输出目录 {path} 不是已注册潜艇目录, 可能出现多个同名 .sub 文件</message>
   <message key="warning.duplicate_registered">多个已注册潜艇名称相同:&#10;{paths}</message>
-  <message key="command.setting">打开工作区配置文件</message>
+  <message key="command.config">打开工作区配置文件</message>
   <message key="err.config_missing">找不到配置文件: {path}</message>
   <message key="err.open_config">无法打开配置文件 {path}: {error}</message>
 </locale>

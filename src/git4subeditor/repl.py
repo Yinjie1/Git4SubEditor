@@ -27,7 +27,7 @@ _COMMANDS: tuple[str, ...] = (
     "pack",
     "unpack",
     "show",
-    "setting",
+    "config",
     "github",
 )
 _HELP_TAG = re.compile(r"<(title|cmd)>(.*?)</\1>")
@@ -65,7 +65,7 @@ def _print_command_list() -> None:
         ("export <file.sub> [-o DIR]", t("repl.command.export")),
         ("pack <file.xml> [-o FILE]", t("repl.command.pack")),
         ("unpack <file.sub> [-o DIR]", t("repl.command.unpack")),
-        ("setting", t("repl.command.setting")),
+        ("config", t("repl.command.config")),
         ("github", t("repl.command.github")),
     )
     columns: int = shutil.get_terminal_size(fallback=(80, 24)).columns
