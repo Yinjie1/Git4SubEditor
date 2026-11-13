@@ -24,9 +24,12 @@ metadata:
 
 运行 `git4subeditor show`。每行一个潜艇路径,可能带标记:
 
-- `(M)`:游戏内改过,但还没导出成 XML
-- `(U)`:仓库里有这个 `.sub`,但没登记进 `git4subeditor.xml`
+- `(M)` 黄色:游戏内改过,但还没导出成 XML
+- `(U)` 绿色:仓库里有这个 `.sub`,但没登记进 `git4subeditor.xml`
+- `(D)` 红色:已登记,但磁盘上找不到这个文件
 - 没有标记:已登记且未改动
+
+`git4subeditor show xml` 列出 `git4subeditor.xml` 中记录的 XML 路径,文件缺失时末尾同样标红色 `(D)`;加 `--tree` 以目录树显示。二者都可以传扩展名,默认是 `sub`。
 
 退出码为 1 并提示工作区未初始化时,说明还没有 `git4subeditor.xml`,进入第 3 步;否则跳过第 3 步。
 
@@ -82,7 +85,7 @@ git4subeditor pack "test.xml"
 
 ## 容易出错的地方
 
-- 不要用 `-f` / `--force`,也不要运行交互模式:不带参数的 `git4subeditor`,以及只有交互模式才有的 `setting`、`github`、`?`。
+- 不要用 `-f` / `--force`,也不要运行交互模式:不带参数的 `git4subeditor`,以及只有交互模式才有的 `config`、`github`、`?`。
 - `checkval` 是游戏保存时写入的随机整数,每次保存都会变,属于正常现象,不要试图修掉。
 - `git4subeditor.xml` 的 `<submarines>` 以 `path` 为标识,`name` 是可选项且不参与输出,识别潜艇用路径。
 - `<update latest="…" lastCheck="…" interval="…" />` 是版本检查缓存,不需要手工维护。

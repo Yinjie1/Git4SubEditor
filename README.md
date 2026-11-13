@@ -154,14 +154,14 @@ CWD: path_to/current_work_directory
   export <file.sub> [-o DIR]  解压 .sub 并转为 Git 友好的 XML
   pack <file.xml> [-o FILE]   打包 XML 为 .sub
   unpack <file.sub> [-o DIR]  仅解压 .sub 为原始 XML
-  setting                     打开工作区配置文件
+  config                      打开工作区配置文件
   github                      前往 Git4SubEditor 项目主页
 
 Tab 补全 · ↑↓ 历史 · Ctrl-R 搜索 · Ctrl-D 退出 · ? 帮助
 g4s:test>
 ```
 其中的潜艇 `.sub` 文件目录树, 是以 **Git 仓库**所在目录为根目录递归搜索得到的, 目录以相对路径显示. 示例中的目录结构是为了展示刻意制造的, 不建议搞这么复杂.  
-其中未注册潜艇带有红色标识 `(U)`. 已注册潜艇在初始化或 `export` 时, 会自动计算并记录哈希值到 `git4subeditor.xml` 中, 生成目录树时会再次计算哈希, 若潜艇发生改动, 哈希会发生改变, 发生改动的潜艇带有黄色标识 `(M)`.
+其中未注册潜艇带有绿色标识 `(U)`. 已注册潜艇在初始化或 `export` 时, 会自动计算并记录哈希值到 `git4subeditor.xml` 中, 生成目录树时会再次计算哈希, 若潜艇发生改动, 哈希会发生改变, 发生改动的潜艇带有黄色标识 `(M)`. 已注册但不存在的潜艇带有红色标识 `(D)`.
 ### 3. sub 转 XML
 若你的潜艇文件为`test.sub`, 执行命令:
 ```bash
