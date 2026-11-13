@@ -254,19 +254,6 @@ def run() -> int:
         if name == "?":
             print(_render_help(t("repl.help")), end="")
             continue
-        if name == "show":
-            if workspace is None:
-                print(t("repl.workspace_missing"))
-            else:
-                options: list[str] = [
-                    token for token in tokens[1:] if token != "--tree"
-                ]
-                print_submarine_paths(
-                    workspace,
-                    tree="--tree" in tokens[1:],
-                    suffix=options[0] if options else "sub",
-                )
-            continue
         if name == "github":
             open_path("https://github.com/Yinjie1/Git4SubEditor")
             continue
