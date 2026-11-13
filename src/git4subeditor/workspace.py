@@ -265,7 +265,7 @@ def _status_suffix(status: str | None) -> str:
     """Return a colored status suffix for a listed submarine."""
     if status is None:
         return ""
-    color: str = "red" if status in {"U", "D"} else "yellow"
+    color: str = {"U": "green", "D": "red"}.get(status, "yellow")
     return f" {format_message(f'({status})', color=color)}"
 
 
@@ -277,10 +277,11 @@ def print_submarine_paths(
     """Print files under the repository.
 
     ``sub`` files are scanned below the Git repository root; unregistered files
-    are marked with a red ``(U)`` suffix and registered files whose hash
-    changed with a yellow ``(M)``. ``xml`` files are taken from the ``xml``
-    attribute of registered submarines and marked with a red ``(D)`` when the
-    file is missing. Other extensions are scanned and printed without markers.
+    are marked with a green ``(U)`` suffix, registered files whose hash changed
+    with a yellow ``(M)``, and registered files that no longer exist with a red
+    ``(D)``. ``xml`` files are taken from the ``xml`` attribute of registered
+    submarines and marked with a red ``(D)`` when the file is missing. Other
+    extensions are scanned and printed without markers.
 
     Args:
         info: Workspace information containing registered submarines.
@@ -296,7 +297,7 @@ def print_submarine_paths(
     listed: list[tuple[SubmarineEntry, str | None]] = []
     if suffix.casefold() == ".sub":
         registered = {entry.path: entry for entry in info.submarines}
-        scanned_entries, unregistered, modified, _ = _detect_submarines(
+        scanned_entries, unregistered, modified, missing = _detect_submarines(
             read_config_root(),
             root_path_resolved,
             workspace_root,
@@ -311,6 +312,9 @@ def print_submarine_paths(
             elif scanned.path in modified_paths:
                 status = "M"
             listed.append((entry, status))
+        for entry in missing:
+            listed.append((entry, "D"))
+        listed.sort(key=lambda item: item[0].path.casefold())
     elif suffix.casefold() == ".xml":
         for submarine in info.submarines:
             if submarine.xml is None:
