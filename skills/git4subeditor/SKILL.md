@@ -82,7 +82,7 @@ git4subeditor pack "test.xml"
 
 ## 容易出错的地方
 
-- 不要用 `-f` / `--force`,也不要用交互模式:裸 `git4subeditor`、`tree`、`setting`、`github`、`?`。
+- 不要用 `-f` / `--force`,也不要运行交互模式:不带参数的 `git4subeditor`,以及只有交互模式才有的 `setting`、`github`、`?`。
 - `checkval` 是游戏保存时写入的随机整数,每次保存都会变,属于正常现象,不要试图修掉。
 - `git4subeditor.xml` 的 `<submarines>` 以 `path` 为标识,`name` 是可选项且不参与输出,识别潜艇用路径。
 - `<update latest="…" lastCheck="…" interval="…" />` 是版本检查缓存,不需要手工维护。

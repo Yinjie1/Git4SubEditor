@@ -26,7 +26,7 @@ _COMMANDS: tuple[str, ...] = (
     "export",
     "pack",
     "unpack",
-    "tree",
+    "show",
     "setting",
     "github",
 )
@@ -61,7 +61,7 @@ def _print_command_list() -> None:
     """Print the interactive command list in argparse style."""
     commands: tuple[tuple[str, str], ...] = (
         ("init", t("repl.command.init")),
-        ("tree", t("repl.command.tree")),
+        ("show [--tree]", t("repl.command.show")),
         ("export <file.sub> [-o DIR]", t("repl.command.export")),
         ("pack <file.xml> [-o FILE]", t("repl.command.pack")),
         ("unpack <file.sub> [-o DIR]", t("repl.command.unpack")),
@@ -254,11 +254,11 @@ def run() -> int:
         if name == "?":
             print(_render_help(t("repl.help")), end="")
             continue
-        if name == "tree":
+        if name == "show":
             if workspace is None:
                 print(t("repl.workspace_missing"))
             else:
-                print_submarine_paths(workspace)
+                print_submarine_paths(workspace, tree="--tree" in tokens[1:])
             continue
         if name == "github":
             open_path("https://github.com/Yinjie1/Git4SubEditor")

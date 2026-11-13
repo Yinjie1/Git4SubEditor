@@ -12,11 +12,11 @@
   <message key="repl.command.export">извлечь .sub и преобразовать в Git-совместимый XML</message>
   <message key="repl.command.pack">упаковать XML в .sub</message>
   <message key="repl.command.unpack">извлечь .sub только как исходный XML</message>
-  <message key="repl.command.tree">рекурсивно искать и показывать все подводные лодки в репозитории</message>
+  <message key="repl.command.show">рекурсивно искать и показывать все подводные лодки в репозитории</message>
   <message key="repl.command.setting">открыть файл конфигурации рабочей папки</message>
   <message key="repl.command.github">перейти на страницу проекта Git4SubEditor</message>
   <message key="repl.hint">Tab: дополнение · ↑↓ история · Ctrl-R поиск · Ctrl-D выход · ? справка</message>
-  <message key="repl.help"><![CDATA[<title>tree</title>
+  <message key="repl.help"><![CDATA[<title>show</title>
   Показать файлы подводных лодок .sub в Git-репозитории в виде дерева.
   - Незарегистрированные файлы помечаются красным (U)
   - Зарегистрированные файлы с изменённым хешем помечаются жёлтым (M)
