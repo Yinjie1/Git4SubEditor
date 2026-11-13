@@ -258,7 +258,14 @@ def run() -> int:
             if workspace is None:
                 print(t("repl.workspace_missing"))
             else:
-                print_submarine_paths(workspace, tree="--tree" in tokens[1:])
+                options: list[str] = [
+                    token for token in tokens[1:] if token != "--tree"
+                ]
+                print_submarine_paths(
+                    workspace,
+                    tree="--tree" in tokens[1:],
+                    suffix=options[0] if options else "sub",
+                )
             continue
         if name == "github":
             open_path("https://github.com/Yinjie1/Git4SubEditor")

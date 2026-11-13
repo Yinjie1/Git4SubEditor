@@ -88,6 +88,12 @@ def build_parser() -> argparse.ArgumentParser:
         help=t("command.show"),
     )
     show.add_argument(
+        "suffix",
+        nargs="?",
+        default="sub",
+        help=t("arg.suffix"),
+    )
+    show.add_argument(
         "--tree",
         action="store_true",
         help=t("arg.tree"),
@@ -433,7 +439,7 @@ def _run_command(
         if info is None:
             print(t("repl.workspace_missing"))
             return 1
-        print_submarine_paths(info, tree=args.tree)
+        print_submarine_paths(info, tree=args.tree, suffix=args.suffix)
         return 0
 
     if args.command == "init":

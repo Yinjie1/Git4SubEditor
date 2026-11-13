@@ -72,6 +72,7 @@
   <message key="arg.sort_attributes_pack">сортировать атрибуты XML по алфавиту перед упаковкой</message>
   <message key="arg.output">выходной файл .sub или существующий каталог; по умолчанию каталог XML-файла</message>
   <message key="arg.tree">показать зарегистрированные подводные лодки в виде дерева каталогов</message>
+  <message key="arg.suffix">расширение файлов для вывода, по умолчанию sub</message>
   <message key="arg.force_init">принять все изменения инициализации без запроса</message>
 
   <message key="err.stdout_single">--stdout принимает только один входной файл</message>
