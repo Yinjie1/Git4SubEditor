@@ -57,6 +57,154 @@ class WorkspaceInfo:
     mod_root: str
     submarines: tuple[SubmarineEntry, ...]
 
+    def print_paths(
+        self,
+        tree: bool = True,
+        suffix: str = "sub",
+    ) -> None:
+        """Print files under the repository.
+
+        ``sub`` files are scanned below the Git repository root; unregistered files
+        are marked with a green ``(U)`` suffix, registered files whose hash changed
+        with a yellow ``(M)``, and registered files that no longer exist with a red
+        ``(D)``. ``xml`` files are taken from the ``xml`` attribute of registered
+        submarines and marked with a red ``(D)`` when the file is missing. Other
+        extensions are scanned and printed without markers.
+
+        Args:
+                tree: Whether to print a directory tree. When False, print files in
+                path order.
+            suffix: File extension to list, with or without the leading dot.
+        """
+        suffix = suffix if suffix.startswith(".") else f".{suffix}"
+        root_label: str = self.git_repo or "."
+        workspace_root: Path = Path.cwd()
+        root_path: Path = workspace_root / root_label
+        root_path_resolved: Path = root_path.resolve()
+        listed: list[tuple[SubmarineEntry, str | None]] = []
+        if suffix.casefold() == ".sub":
+            registered = {entry.path: entry for entry in self.submarines}
+            scanned_entries, unregistered, modified, missing = _detect_submarines(
+                read_config_root(),
+                root_path_resolved,
+                workspace_root,
+            )
+            unregistered_paths: set[str] = {entry.path for entry in unregistered}
+            modified_paths: set[str] = {entry.path for entry in modified}
+            for scanned in scanned_entries:
+                entry: SubmarineEntry = registered.get(scanned.path) or scanned
+                status: str | None = None
+                if scanned.path in unregistered_paths:
+                    status = "U"
+                elif scanned.path in modified_paths:
+                    status = "M"
+                listed.append((entry, status))
+            for entry in missing:
+                listed.append((entry, "D"))
+            listed.sort(key=lambda item: item[0].path.casefold())
+        elif suffix.casefold() == ".xml":
+            for submarine in self.submarines:
+                if submarine.xml is None:
+                    continue
+                exists: bool = (workspace_root / submarine.xml).is_file()
+                listed.append(
+                    (
+                        SubmarineEntry(
+                            name=Path(submarine.xml).stem,
+                            path=submarine.xml,
+                        ),
+                        None if exists else "D",
+                    )
+                )
+            listed.sort(key=lambda item: item[0].path.casefold())
+        else:
+            for path in root_path_resolved.rglob(f"*{suffix}"):
+                if not path.is_file():
+                    continue
+                if ".git" in path.relative_to(root_path_resolved).parts[:-1]:
+                    continue
+                listed.append(
+                    (
+                        SubmarineEntry(
+                            name=path.stem,
+                            path=_relative_path(
+                                workspace_root.resolve(), path.resolve()
+                            ),
+                        ),
+                        None,
+                    )
+                )
+            listed.sort(key=lambda item: item[0].path.casefold())
+
+        if not tree:
+            for submarine, status in listed:
+                path_text: str = _relative_display(workspace_root / submarine.path)
+                print(f"{path_text}{_status_suffix(status)}")
+            return
+
+        entries: list[_TreeEntry] = []
+        for submarine, status in listed:
+            try:
+                repository_relative: Path = (
+                    (workspace_root / submarine.path)
+                    .resolve()
+                    .relative_to(root_path_resolved)
+                )
+            except ValueError:
+                continue
+            parts: list[str] = _split_path_text(repository_relative.as_posix())
+            if not parts:
+                continue
+            entries.append((parts[:-1], submarine, status))
+
+        if not entries:
+            return
+
+        def print_children(
+            children: list[_TreeEntry],
+            prefix: str,
+            parent: Path,
+        ) -> None:
+            """Print tree entries below one directory level."""
+            files: list[tuple[SubmarineEntry, str | None]] = [
+                (submarine, status)
+                for directories, submarine, status in children
+                if not directories
+            ]
+            directory_names: list[str] = list(
+                dict.fromkeys(
+                    directories[0] for directories, _, _ in children if directories
+                )
+            )
+
+            total: int = len(files) + len(directory_names)
+            index: int = 0
+            for submarine, status in files:
+                index += 1
+                connector: str = "└── " if index == total else "├── "
+                filename: str = Path(submarine.path).name
+                print(f"{prefix}{connector}{filename}{_status_suffix(status)}")
+
+            for directory_name in directory_names:
+                index += 1
+                connector = "└── " if index == total else "├── "
+                directory_path: Path = parent / directory_name
+                directory_text: str = format_message(
+                    _relative_display(directory_path),
+                    color="light_blue",
+                )
+                print(f"{prefix}{connector}{directory_text}")
+                child_prefix: str = prefix + ("    " if index == total else "│   ")
+                nested: list[_TreeEntry] = [
+                    (directories[1:], submarine, status)
+                    for directories, submarine, status in children
+                    if directories and directories[0] == directory_name
+                ]
+                print_children(nested, child_prefix, directory_path)
+
+        print(format_message(_relative_display(root_path), color="light_blue"))
+        print_children(entries, "", root_path)
+
 
 type _TreeEntry = tuple[list[str], SubmarineEntry, str | None]
 type SubmarineConfirm = Callable[
@@ -267,154 +415,6 @@ def _status_suffix(status: str | None) -> str:
         return ""
     color: str = {"U": "green", "D": "red"}.get(status, "yellow")
     return f" {format_message(f'({status})', color=color)}"
-
-
-def print_submarine_paths(
-    info: WorkspaceInfo,
-    tree: bool = True,
-    suffix: str = "sub",
-) -> None:
-    """Print files under the repository.
-
-    ``sub`` files are scanned below the Git repository root; unregistered files
-    are marked with a green ``(U)`` suffix, registered files whose hash changed
-    with a yellow ``(M)``, and registered files that no longer exist with a red
-    ``(D)``. ``xml`` files are taken from the ``xml`` attribute of registered
-    submarines and marked with a red ``(D)`` when the file is missing. Other
-    extensions are scanned and printed without markers.
-
-    Args:
-        info: Workspace information containing registered submarines.
-        tree: Whether to print a directory tree. When False, print files in
-            path order.
-        suffix: File extension to list, with or without the leading dot.
-    """
-    suffix = suffix if suffix.startswith(".") else f".{suffix}"
-    root_label: str = info.git_repo or "."
-    workspace_root: Path = Path.cwd()
-    root_path: Path = workspace_root / root_label
-    root_path_resolved: Path = root_path.resolve()
-    listed: list[tuple[SubmarineEntry, str | None]] = []
-    if suffix.casefold() == ".sub":
-        registered = {entry.path: entry for entry in info.submarines}
-        scanned_entries, unregistered, modified, missing = _detect_submarines(
-            read_config_root(),
-            root_path_resolved,
-            workspace_root,
-        )
-        unregistered_paths: set[str] = {entry.path for entry in unregistered}
-        modified_paths: set[str] = {entry.path for entry in modified}
-        for scanned in scanned_entries:
-            entry: SubmarineEntry = registered.get(scanned.path) or scanned
-            status: str | None = None
-            if scanned.path in unregistered_paths:
-                status = "U"
-            elif scanned.path in modified_paths:
-                status = "M"
-            listed.append((entry, status))
-        for entry in missing:
-            listed.append((entry, "D"))
-        listed.sort(key=lambda item: item[0].path.casefold())
-    elif suffix.casefold() == ".xml":
-        for submarine in info.submarines:
-            if submarine.xml is None:
-                continue
-            exists: bool = (workspace_root / submarine.xml).is_file()
-            listed.append(
-                (
-                    SubmarineEntry(
-                        name=Path(submarine.xml).stem,
-                        path=submarine.xml,
-                    ),
-                    None if exists else "D",
-                )
-            )
-        listed.sort(key=lambda item: item[0].path.casefold())
-    else:
-        for path in root_path_resolved.rglob(f"*{suffix}"):
-            if not path.is_file():
-                continue
-            if ".git" in path.relative_to(root_path_resolved).parts[:-1]:
-                continue
-            listed.append(
-                (
-                    SubmarineEntry(
-                        name=path.stem,
-                        path=_relative_path(workspace_root.resolve(), path.resolve()),
-                    ),
-                    None,
-                )
-            )
-        listed.sort(key=lambda item: item[0].path.casefold())
-
-    if not tree:
-        for submarine, status in listed:
-            path_text: str = _relative_display(workspace_root / submarine.path)
-            print(f"{path_text}{_status_suffix(status)}")
-        return
-
-    entries: list[_TreeEntry] = []
-    for submarine, status in listed:
-        try:
-            repository_relative: Path = (
-                (workspace_root / submarine.path)
-                .resolve()
-                .relative_to(root_path_resolved)
-            )
-        except ValueError:
-            continue
-        parts: list[str] = _split_path_text(repository_relative.as_posix())
-        if not parts:
-            continue
-        entries.append((parts[:-1], submarine, status))
-
-    if not entries:
-        return
-
-    def print_children(
-        children: list[_TreeEntry],
-        prefix: str,
-        parent: Path,
-    ) -> None:
-        """Print tree entries below one directory level."""
-        files: list[tuple[SubmarineEntry, str | None]] = [
-            (submarine, status)
-            for directories, submarine, status in children
-            if not directories
-        ]
-        directory_names: list[str] = list(
-            dict.fromkeys(
-                directories[0] for directories, _, _ in children if directories
-            )
-        )
-
-        total: int = len(files) + len(directory_names)
-        index: int = 0
-        for submarine, status in files:
-            index += 1
-            connector: str = "└── " if index == total else "├── "
-            filename: str = Path(submarine.path).name
-            print(f"{prefix}{connector}{filename}{_status_suffix(status)}")
-
-        for directory_name in directory_names:
-            index += 1
-            connector = "└── " if index == total else "├── "
-            directory_path: Path = parent / directory_name
-            directory_text: str = format_message(
-                _relative_display(directory_path),
-                color="light_blue",
-            )
-            print(f"{prefix}{connector}{directory_text}")
-            child_prefix: str = prefix + ("    " if index == total else "│   ")
-            nested: list[_TreeEntry] = [
-                (directories[1:], submarine, status)
-                for directories, submarine, status in children
-                if directories and directories[0] == directory_name
-            ]
-            print_children(nested, child_prefix, directory_path)
-
-    print(format_message(_relative_display(root_path), color="light_blue"))
-    print_children(entries, "", root_path)
 
 
 IGNORE_PATTERNS: tuple[str, ...] = ("*.sub", "*.bak", "*.png", "history")

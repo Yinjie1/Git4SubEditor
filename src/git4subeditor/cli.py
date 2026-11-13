@@ -28,7 +28,6 @@ from git4subeditor.workspace import (
     _relative_display,
     initialize_project,
     load_workspace_info,
-    print_submarine_paths,
     read_config_root,
     refresh_submarine_metadata,
     update_status,
@@ -439,7 +438,7 @@ def _run_command(
         if info is None:
             print(t("repl.workspace_missing"))
             return 1
-        print_submarine_paths(info, tree=args.tree, suffix=args.suffix)
+        info.print_paths(tree=args.tree, suffix=args.suffix)
         return 0
 
     if args.command == "init":
@@ -551,7 +550,7 @@ def _run_command(
             print(t("status.git_repo", path=result.git_repository_path))
         info = load_workspace_info()
         if info is not None:
-            print_submarine_paths(info)
+            info.print_paths()
         return 0
 
     if args.command == "unpack" and args.stdout and len(args.inputs) > 1:

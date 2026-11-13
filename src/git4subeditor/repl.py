@@ -17,7 +17,6 @@ from git4subeditor.utils import format_message, open_path, print_banner
 from git4subeditor.workspace import (
     WorkspaceInfo,
     load_workspace_info,
-    print_submarine_paths,
     update_status,
 )
 
@@ -114,7 +113,7 @@ def _print_workspace_info(info: WorkspaceInfo | None) -> None:
         )
     )
     print(t("repl.cwd", path=Path.cwd().resolve()))
-    print_submarine_paths(info)
+    info.print_paths()
 
     groups: dict[str, list[str]] = {}
     for submarine in info.submarines:
