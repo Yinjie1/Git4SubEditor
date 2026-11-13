@@ -150,7 +150,7 @@ CWD: path_to/current_work_directory
 
 命令:
   init                        初始化/更新工作区
-  show [--tree]               递归搜索并显示仓库下所有潜艇
+  show [--tree] [xml]         递归搜索并显示仓库下所有潜艇
   export <file.sub> [-o DIR]  解压 .sub 并转为 Git 友好的 XML
   pack <file.xml> [-o FILE]   打包 XML 为 .sub
   unpack <file.sub> [-o DIR]  仅解压 .sub 为原始 XML

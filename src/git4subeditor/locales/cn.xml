@@ -17,9 +17,18 @@
   <message key="repl.command.github">前往 Git4SubEditor 项目主页</message>
   <message key="repl.hint">Tab 补全 · ↑↓ 历史 · Ctrl-R 搜索 · Ctrl-D 退出 · ? 帮助</message>
   <message key="repl.help"><![CDATA[<title>show</title>
-  以目录树形式显示 Git 仓库下的潜艇 .sub 文件.
-  - 未注册文件末尾显示红色 (U)
+  显示 Git 仓库下的潜艇文件, 默认每行一个路径, 加 --tree 以目录树显示.
+  - 未注册文件末尾显示绿色 (U)
   - 已注册但哈希变化的文件末尾显示黄色 (M)
+  - 已注册但文件不存在的潜艇末尾显示红色 (D)
+
+  <cmd>show</cmd>
+      列出所有潜艇 .sub
+  <cmd>show</cmd> xml
+      列出配置中记录的 XML 路径, 缺失的标红色 (D)
+  <cmd>show</cmd> xml --tree
+      以目录树显示 XML 路径
+      扩展名默认为 sub, 其他扩展名直接替换 xml
 
 <title>export</title>
   导出 .sub 为 Git 友好的 XML.

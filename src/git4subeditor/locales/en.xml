@@ -17,9 +17,19 @@
   <message key="repl.command.github">go to the Git4SubEditor project page</message>
   <message key="repl.hint">Tab complete · ↑↓ history · Ctrl-R search · Ctrl-D quit · ? help</message>
   <message key="repl.help"><![CDATA[<title>show</title>
-  Show submarine .sub files in the Git repository as a directory tree.
-  - Unregistered files end with a red (U)
+  Show files in the Git repository, one path per line by default; add --tree
+  to show a directory tree.
+  - Unregistered files end with a green (U)
   - Registered files with a changed hash end with a yellow (M)
+  - Registered submarines whose file is missing end with a red (D)
+
+  <cmd>show</cmd>
+      List submarine .sub files
+  <cmd>show</cmd> xml
+      List XML paths recorded in the configuration, missing ones in red (D)
+  <cmd>show</cmd> xml --tree
+      Show XML paths as a directory tree
+      The extension defaults to sub; replace xml with any other extension
 
 <title>export</title>
   Export .sub files as Git-friendly XML.
