@@ -198,6 +198,7 @@ def run() -> int:
         from prompt_toolkit.completion import Completer, Completion
         from prompt_toolkit.formatted_text import ANSI
         from prompt_toolkit.history import FileHistory
+        from prompt_toolkit.key_binding import KeyBindings
     except ImportError:
         pass
     else:
@@ -218,10 +219,18 @@ def run() -> int:
                     if command.startswith(text):
                         yield Completion(command, start_position=-len(text))
 
+        bindings = KeyBindings()
+
+        @bindings.add("c-d")
+        def _exit(event: Any) -> None:
+            """Exit even when the input line is not empty."""
+            event.app.exit(exception=EOFError)
+
         session = PromptSession(
             history=FileHistory(str(Path.cwd() / "history")),
             completer=_CommandCompleter(),
             complete_while_typing=False,
+            key_bindings=bindings,
         )
         ansi = ANSI
 
