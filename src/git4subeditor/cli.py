@@ -154,6 +154,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help=t("arg.sort_attributes"),
     )
+    export.add_argument(
+        "--no-path",
+        action="store_true",
+        help=t("arg.no_path"),
+    )
     _add_force(export)
 
     pack = subparsers.add_parser(
@@ -296,12 +301,14 @@ class _SubmarineEntry:
             configured.
         xml_path: Resolved exported XML path, or None when no XML path is
             recorded.
+        way_point: Whether exports keep path waypoints.
     """
 
     name: str
     path: str
     preview_path: Path | None = None
     xml_path: Path | None = None
+    way_point: bool = False
 
 
 def _load_registry() -> dict[Path, _SubmarineEntry] | None:
@@ -338,6 +345,7 @@ def _load_registry() -> dict[Path, _SubmarineEntry] | None:
             path=path_text,
             preview_path=preview_path,
             xml_path=xml_path,
+            way_point=(entry.get("wayPoint") or "").strip().casefold() == "true",
         )
     return registry
 
@@ -675,6 +683,7 @@ def _run_command(
                     target_dir,
                     force=force,
                     sort_attributes=args.sort_attributes,
+                    no_path=args.no_path or (entry is not None and not entry.way_point),
                 )
                 exported[src.resolve()] = result.xml_path
                 if result.preview_path is not None:

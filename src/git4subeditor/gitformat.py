@@ -294,12 +294,54 @@ def _restore_ids_and_references(root: ET.Element) -> None:
                 ref_indexes[name] = index + 1
 
 
+def _remove_path_waypoints(root: ET.Element) -> None:
+    """Remove path waypoints and every reference to their IDs.
+
+    A path waypoint is a ``WayPoint`` whose ``spawn`` is ``Path``. Remaining
+    attributes lose the values that point at removed waypoints; attributes left
+    without values are deleted.
+
+    Args:
+        root: Root element of a submarine XML document. It is modified in
+            place.
+    """
+    for scope in (root, *root.iter("LinkedSubmarine")):
+        removed: set[str] = set()
+        for child in list(scope):
+            if not isinstance(child.tag, str):
+                continue
+            if child.tag != "WayPoint":
+                continue
+            if (child.get("spawn") or "").strip().casefold() != "path":
+                continue
+            waypoint_id: str = (child.get("ID") or "").strip()
+            if waypoint_id:
+                removed.add(waypoint_id)
+            scope.remove(child)
+        if not removed:
+            continue
+        for element in _scope_elements(scope):
+            for name in [key for key in element.attrib if _is_reference_attribute(key)]:
+                tokens: list[str] = (element.get(name) or "").split(",")
+                kept: list[str] = [
+                    token for token in tokens if token.strip() not in removed
+                ]
+                if len(kept) == len(tokens):
+                    continue
+                value: str = ",".join(kept)
+                if value.strip():
+                    element.set(name, value)
+                else:
+                    del element.attrib[name]
+
+
 def export_sub(
     src: Path,
     out_dir: Path | None = None,
     *,
     force: bool = False,
     sort_attributes: bool = False,
+    no_path: bool = False,
 ) -> ExportResult:
     """Export a .sub file into a Git-friendly XML bundle.
 
@@ -312,6 +354,7 @@ def export_sub(
         out_dir: Output directory. Defaults to the input file's directory.
         force: Whether to overwrite existing output files.
         sort_attributes: Whether to sort XML attributes alphabetically.
+        no_path: Whether to drop path waypoints and references to them.
 
     Returns:
         The paths of the written XML file and preview image.
@@ -324,6 +367,8 @@ def export_sub(
     text: str = decode_xml(decompress_sub(raw))
     root: ET.Element = parse_xml(text)
     _require_submarine_root(root)
+    if no_path:
+        _remove_path_waypoints(root)
 
     preview: tuple[bytes, str] | None = extract_preview_image(root)
 

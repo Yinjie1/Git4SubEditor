@@ -76,6 +76,7 @@
   <message key="arg.no_validate">跳过 XML 格式检查</message>
   <message key="arg.force">直接覆盖已存在的输出文件, 不询问</message>
   <message key="arg.sort_attributes">按字母顺序排序 XML 属性, 使 diff 更稳定</message>
+  <message key="arg.no_path">不导出路径点(spawn=Path 的 WayPoint)以及指向它们的引用</message>
   <message key="arg.sort_attributes_pack">打包前按字母顺序排序 XML 属性</message>
   <message key="arg.output">输出 .sub 文件, 或一个已存在的目录; 默认为 XML 文件所在目录</message>
   <message key="arg.tree">以目录树形式显示已注册潜艇</message>

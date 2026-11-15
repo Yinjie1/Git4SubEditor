@@ -32,6 +32,7 @@ class SubmarineEntry:
             recorded at registration, or None when no hash is configured.
         xml: Exported XML path relative to the workspace directory, or None
             when the submarine has not been exported.
+        way_point: Whether exports keep path waypoints. Defaults to False.
     """
 
     name: str
@@ -39,6 +40,7 @@ class SubmarineEntry:
     preview: str | None = None
     hash: str | None = None
     xml: str | None = None
+    way_point: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -266,6 +268,7 @@ def load_workspace_info() -> WorkspaceInfo | None:
                 path=path_text,
                 hash=hash_text or None,
                 xml=xml_text or None,
+                way_point=(entry.get("wayPoint") or "").strip().casefold() == "true",
             )
         )
 
@@ -728,6 +731,7 @@ def _detect_submarines(
                 preview=(child.get("preview") or "").strip() or None,
                 hash=(child.get("hash") or "").strip() or None,
                 xml=(child.get("xml") or "").strip() or None,
+                way_point=(child.get("wayPoint") or "").strip().casefold() == "true",
             )
 
     unregistered: list[SubmarineEntry] = []
@@ -744,6 +748,7 @@ def _detect_submarines(
                     preview=entry.preview,
                     hash=entry.hash,
                     xml=old.xml,
+                    way_point=old.way_point,
                 )
             )
 
@@ -799,6 +804,8 @@ def _confirm_submarine_update(
                     path=path,
                     preview=(child.get("preview") or "").strip() or None,
                     hash=(child.get("hash") or "").strip() or None,
+                    way_point=(child.get("wayPoint") or "").strip().casefold()
+                    == "true",
                 )
             )
     return confirm(tuple(registered), pending)
@@ -983,6 +990,7 @@ def _sync_submarines(
                 "path": entry.path,
                 "preview": entry.preview or "",
                 "hash": entry.hash or "",
+                "wayPoint": "false",
             },
         )
         existing[entry.path] = child

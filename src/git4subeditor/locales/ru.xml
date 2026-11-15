@@ -79,6 +79,7 @@
   <message key="arg.no_validate">пропустить проверку корректности XML</message>
   <message key="arg.force">перезаписывать существующие файлы без запроса</message>
   <message key="arg.sort_attributes">сортировать атрибуты XML по алфавиту для стабильных diff</message>
+  <message key="arg.no_path">не экспортировать путевые точки (WayPoint с spawn=Path) и ссылки на них</message>
   <message key="arg.sort_attributes_pack">сортировать атрибуты XML по алфавиту перед упаковкой</message>
   <message key="arg.output">выходной файл .sub или существующий каталог; по умолчанию каталог XML-файла</message>
   <message key="arg.tree">показать зарегистрированные подводные лодки в виде дерева каталогов</message>
