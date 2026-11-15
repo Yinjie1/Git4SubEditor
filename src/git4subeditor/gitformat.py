@@ -41,15 +41,17 @@ REFERENCE_ATTRIBUTES: tuple[str, ...] = (
     "contained",
     "linked",
     "linkedto",
-    "linkedto0",
-    "linkedto1",
-    "linkedto2",
-    "linkedto3",
-    "linkedto4",
     "ladders",
     "gap",
 )
 _DIGITS = re.compile(r"\d+")
+_LINKEDTO_INDEX = re.compile(r"linkedto\d+")
+
+
+def _is_reference_attribute(name: str) -> bool:
+    """Return whether an attribute holds entity IDs."""
+    return name in REFERENCE_ATTRIBUTES or _LINKEDTO_INDEX.fullmatch(name) is not None
+
 
 _IMAGE_SIGNATURES: tuple[tuple[bytes, str], ...] = (
     (b"\x89PNG\r\n\x1a\n", ".png"),
@@ -224,7 +226,7 @@ def _strip_ids_and_references(root: ET.Element) -> None:
         for element in elements:
             if ID_ATTRIBUTE in element.attrib:
                 element.set(ID_ATTRIBUTE, "")
-            for name in REFERENCE_ATTRIBUTES:
+            for name in [key for key in element.attrib if _is_reference_attribute(key)]:
                 if name in element.attrib:
                     value: str = element.get(name) or ""
                     references.setdefault(name, []).append(
@@ -256,13 +258,14 @@ def _restore_ids_and_references(root: ET.Element) -> None:
     """
     for scope in (root, *root.iter("LinkedSubmarine")):
         references: dict[str, list[str]] = {}
-        for name in REFERENCE_ATTRIBUTES:
-            text: str | None = scope.attrib.pop(
-                f"{REFERENCE_LIST_PREFIX}{name}",
-                None,
-            )
-            if text is not None:
-                references[name] = text.split(LIST_SEPARATOR)
+        for key in list(scope.attrib):
+            if not key.startswith(REFERENCE_LIST_PREFIX):
+                continue
+            name: str = key.removeprefix(REFERENCE_LIST_PREFIX)
+            if not _is_reference_attribute(name):
+                continue
+            text: str = scope.attrib.pop(key)
+            references[name] = text.split(LIST_SEPARATOR)
 
         elements: list[ET.Element] = list(_scope_elements(scope))
         for name, values in references.items():
@@ -280,7 +283,7 @@ def _restore_ids_and_references(root: ET.Element) -> None:
         id_index: int = 0
         ref_indexes: dict[str, int] = {}
         for element in elements:
-            if ID_ATTRIBUTE in element.attrib:
+            if element.get(ID_ATTRIBUTE) == "":
                 element.set(ID_ATTRIBUTE, str(id_index + 1))
                 id_index += 1
             for name, values in references.items():
