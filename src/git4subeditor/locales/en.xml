@@ -104,6 +104,7 @@
   <message key="status.export_preview">{src} -> {xml}, preview: {preview}</message>
   <message key="status.export_no_preview">{src} -> {xml}, no preview</message>
   <message key="status.pack">{src} -> {dst}</message>
+  <message key="status.path_removed">automatically removed {count} path waypoints and related attributes (do not record waypoints before the hull layout is finalized)</message>
   <message key="status.unpack">{src} -> {dst}  [{kind}, {bytes} bytes]</message>
   <message key="kind.gzip">gzip</message>
   <message key="kind.plain_xml">plain XML</message>

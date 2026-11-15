@@ -104,6 +104,7 @@
   <message key="status.export_preview">{src} -> {xml}, предпросмотр: {preview}</message>
   <message key="status.export_no_preview">{src} -> {xml}, без предпросмотра</message>
   <message key="status.pack">{src} -> {dst}</message>
+  <message key="status.path_removed">автоматически удалено путевых точек: {count} и связанные атрибуты (не записывайте путевые точки до окончательной планировки отсеков)</message>
   <message key="status.unpack">{src} -> {dst}  [{kind}, {bytes} байт]</message>
   <message key="kind.gzip">gzip</message>
   <message key="kind.plain_xml">обычный XML</message>

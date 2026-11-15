@@ -101,6 +101,7 @@
   <message key="status.export_preview">{src} -> {xml}, 预览图: {preview}</message>
   <message key="status.export_no_preview">{src} -> {xml}, 无预览图</message>
   <message key="status.pack">{src} -> {dst}</message>
+  <message key="status.path_removed">已自动清除 {count} 个路径点及关联属性(建议舱室定形前不要记录路径点)</message>
   <message key="status.unpack">{src} -> {dst}  [{kind}, {bytes} 字节]</message>
   <message key="kind.gzip">gzip</message>
   <message key="kind.plain_xml">纯 XML</message>

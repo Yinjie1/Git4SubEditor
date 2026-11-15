@@ -294,7 +294,7 @@ def _restore_ids_and_references(root: ET.Element) -> None:
                 ref_indexes[name] = index + 1
 
 
-def _remove_path_waypoints(root: ET.Element) -> None:
+def _remove_path_waypoints(root: ET.Element) -> int:
     """Remove path waypoints and every reference to their IDs.
 
     A path waypoint is a ``WayPoint`` whose ``spawn`` is ``Path``. Remaining
@@ -304,7 +304,11 @@ def _remove_path_waypoints(root: ET.Element) -> None:
     Args:
         root: Root element of a submarine XML document. It is modified in
             place.
+
+    Returns:
+        The number of removed waypoints.
     """
+    removed_count: int = 0
     for scope in (root, *root.iter("LinkedSubmarine")):
         removed: set[str] = set()
         for child in list(scope):
@@ -318,6 +322,7 @@ def _remove_path_waypoints(root: ET.Element) -> None:
             if waypoint_id:
                 removed.add(waypoint_id)
             scope.remove(child)
+            removed_count += 1
         if not removed:
             continue
         for element in _scope_elements(scope):
@@ -333,6 +338,7 @@ def _remove_path_waypoints(root: ET.Element) -> None:
                     element.set(name, value)
                 else:
                     del element.attrib[name]
+    return removed_count
 
 
 def export_sub(
@@ -368,7 +374,15 @@ def export_sub(
     root: ET.Element = parse_xml(text)
     _require_submarine_root(root)
     if no_path:
-        _remove_path_waypoints(root)
+        removed: int = _remove_path_waypoints(root)
+        if removed:
+            print(
+                format_message(
+                    t("status.path_removed", count=removed),
+                    label="warning",
+                ),
+                file=sys.stderr,
+            )
 
     preview: tuple[bytes, str] | None = extract_preview_image(root)
 
