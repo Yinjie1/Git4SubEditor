@@ -10,6 +10,7 @@ file, backing up an existing target first.
 import base64
 import binascii
 import gzip
+import re
 import shutil
 import sys
 import xml.etree.ElementTree as ET
@@ -32,7 +33,6 @@ PREVIEW_LINK_ATTRIBUTE: str = "preview"
 INDENT: str = "  "
 
 ID_ATTRIBUTE: str = "ID"
-ID_LIST_ATTRIBUTE: str = "ids"
 REFERENCE_LIST_PREFIX: str = "ref_"
 LIST_SEPARATOR: str = "|"
 SCOPE_TAGS: frozenset[str] = frozenset({"Submarine", "LinkedSubmarine"})
@@ -49,6 +49,7 @@ REFERENCE_ATTRIBUTES: tuple[str, ...] = (
     "ladders",
     "gap",
 )
+_DIGITS = re.compile(r"\d+")
 
 _IMAGE_SIGNATURES: tuple[tuple[bytes, str], ...] = (
     (b"\x89PNG\r\n\x1a\n", ".png"),
@@ -200,35 +201,50 @@ def _walk_scope(element: ET.Element) -> Iterator[ET.Element]:
 
 
 def _strip_ids_and_references(root: ET.Element) -> None:
-    """Move entity IDs and references into ordered lists on each scope element.
+    """Replace entity IDs and references with placeholders and ordered lists.
 
-    Elements keep empty placeholders so packing knows which elements carry a
-    value and in which order. Values are moved verbatim, so packing restores
-    the original numbering.
+    Entity IDs are renumbered to 1 to N in document order, and every reference
+    value is replaced by the new number of its target. Elements keep empty
+    ``ID`` placeholders; reference values are stored as ordered lists on the
+    scope element.
 
     Args:
         root: Root element of a submarine XML document. It is modified in
             place.
     """
     for scope in (root, *root.iter("LinkedSubmarine")):
-        ids: list[str] = []
-        references: dict[str, list[str]] = {}
-        for element in _scope_elements(scope):
+        elements: list[ET.Element] = list(_scope_elements(scope))
+        id_map: dict[str, str] = {}
+        for element in elements:
             if ID_ATTRIBUTE in element.attrib:
-                ids.append(element.get(ID_ATTRIBUTE) or "")
+                old_id: str = element.get(ID_ATTRIBUTE) or ""
+                if old_id not in id_map:
+                    id_map[old_id] = str(len(id_map) + 1)
+        references: dict[str, list[str]] = {}
+        for element in elements:
+            if ID_ATTRIBUTE in element.attrib:
                 element.set(ID_ATTRIBUTE, "")
             for name in REFERENCE_ATTRIBUTES:
                 if name in element.attrib:
-                    references.setdefault(name, []).append(element.get(name) or "")
+                    value: str = element.get(name) or ""
+                    references.setdefault(name, []).append(
+                        _DIGITS.sub(
+                            lambda match, mapping=id_map: mapping.get(
+                                match.group(), match.group()
+                            ),
+                            value,
+                        )
+                    )
                     element.set(name, "")
-        if ids:
-            scope.set(ID_LIST_ATTRIBUTE, LIST_SEPARATOR.join(ids))
         for name, values in references.items():
             scope.set(f"{REFERENCE_LIST_PREFIX}{name}", LIST_SEPARATOR.join(values))
 
 
 def _restore_ids_and_references(root: ET.Element) -> None:
-    """Restore entity IDs and references from the ordered scope lists.
+    """Restore entity IDs and references.
+
+    Empty ``ID`` placeholders receive 1 to N in document order. Reference
+    values come from the ordered lists on each scope element.
 
     Args:
         root: Root element of a submarine XML document. It is modified in
@@ -236,13 +252,9 @@ def _restore_ids_and_references(root: ET.Element) -> None:
 
     Raises:
         SubFileError: If an element placeholder count does not match the length
-            of the corresponding list.
+            of the corresponding reference list.
     """
     for scope in (root, *root.iter("LinkedSubmarine")):
-        ids_text: str | None = scope.attrib.pop(ID_LIST_ATTRIBUTE, None)
-        ids: list[str] | None = (
-            ids_text.split(LIST_SEPARATOR) if ids_text is not None else None
-        )
         references: dict[str, list[str]] = {}
         for name in REFERENCE_ATTRIBUTES:
             text: str | None = scope.attrib.pop(
@@ -253,21 +265,8 @@ def _restore_ids_and_references(root: ET.Element) -> None:
                 references[name] = text.split(LIST_SEPARATOR)
 
         elements: list[ET.Element] = list(_scope_elements(scope))
-        if ids is not None:
-            placeholders: int = sum(
-                1 for element in elements if ID_ATTRIBUTE in element.attrib
-            )
-            if placeholders != len(ids):
-                raise SubFileError(
-                    t(
-                        "err.list_mismatch",
-                        name=ID_ATTRIBUTE,
-                        placeholders=placeholders,
-                        values=len(ids),
-                    )
-                )
         for name, values in references.items():
-            placeholders = sum(1 for element in elements if name in element.attrib)
+            placeholders: int = sum(1 for element in elements if name in element.attrib)
             if placeholders != len(values):
                 raise SubFileError(
                     t(
@@ -281,8 +280,8 @@ def _restore_ids_and_references(root: ET.Element) -> None:
         id_index: int = 0
         ref_indexes: dict[str, int] = {}
         for element in elements:
-            if ids is not None and ID_ATTRIBUTE in element.attrib:
-                element.set(ID_ATTRIBUTE, ids[id_index])
+            if ID_ATTRIBUTE in element.attrib:
+                element.set(ID_ATTRIBUTE, str(id_index + 1))
                 id_index += 1
             for name, values in references.items():
                 if name not in element.attrib:
