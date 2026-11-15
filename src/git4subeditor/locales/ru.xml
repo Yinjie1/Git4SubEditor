@@ -141,6 +141,7 @@
   <message key="err.invalid_base64">previewimage не является допустимым base64: {error}</message>
   <message key="err.read_file">не удалось прочитать файл {path}: {error}</message>
   <message key="err.pack_sub_input">{path} похож на файл .sub; сначала экспортируйте его в XML</message>
+  <message key="err.list_mismatch">у атрибута {name} {placeholders} заполнителей, а значений {values}</message>
   <message key="err.read_preview">не удалось прочитать изображение предпросмотра {path}: {error}</message>
   <message key="err.empty_preview">изображение предпросмотра пусто: {path}</message>
   <message key="err.create_dir">не удалось создать каталог вывода {path}: {error}</message>

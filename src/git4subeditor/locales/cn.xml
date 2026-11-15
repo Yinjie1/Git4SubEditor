@@ -138,6 +138,7 @@
   <message key="err.invalid_base64">previewimage 不是有效的 base64: {error}</message>
   <message key="err.read_file">无法读取文件 {path}: {error}</message>
   <message key="err.pack_sub_input">{path} 看起来是 .sub 文件; 请先导出为 XML</message>
+  <message key="err.list_mismatch">属性 {name} 的占位数量({placeholders})与列表长度({values})不一致</message>
   <message key="err.read_preview">无法读取预览图 {path}: {error}</message>
   <message key="err.empty_preview">预览图为空: {path}</message>
   <message key="err.create_dir">无法创建输出目录 {path}: {error}</message>

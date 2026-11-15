@@ -141,6 +141,7 @@
   <message key="err.invalid_base64">previewimage is not valid base64: {error}</message>
   <message key="err.read_file">cannot read file {path}: {error}</message>
   <message key="err.pack_sub_input">{path} looks like a .sub file; export it to XML first</message>
+  <message key="err.list_mismatch">attribute {name} has {placeholders} placeholders but {values} values</message>
   <message key="err.read_preview">cannot read preview image {path}: {error}</message>
   <message key="err.empty_preview">preview image is empty: {path}</message>
   <message key="err.create_dir">cannot create output directory {path}: {error}</message>

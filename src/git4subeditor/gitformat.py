@@ -13,6 +13,7 @@ import gzip
 import shutil
 import sys
 import xml.etree.ElementTree as ET
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -29,6 +30,25 @@ from git4subeditor.utils import format_message
 PREVIEW_ATTRIBUTE: str = "previewimage"
 PREVIEW_LINK_ATTRIBUTE: str = "preview"
 INDENT: str = "  "
+
+ID_ATTRIBUTE: str = "ID"
+ID_LIST_ATTRIBUTE: str = "ids"
+REFERENCE_LIST_PREFIX: str = "ref_"
+LIST_SEPARATOR: str = "|"
+SCOPE_TAGS: frozenset[str] = frozenset({"Submarine", "LinkedSubmarine"})
+REFERENCE_ATTRIBUTES: tuple[str, ...] = (
+    "w",
+    "contained",
+    "linked",
+    "linkedto",
+    "linkedto0",
+    "linkedto1",
+    "linkedto2",
+    "linkedto3",
+    "linkedto4",
+    "ladders",
+    "gap",
+)
 
 _IMAGE_SIGNATURES: tuple[tuple[bytes, str], ...] = (
     (b"\x89PNG\r\n\x1a\n", ".png"),
@@ -164,6 +184,114 @@ def embed_preview_image(root: ET.Element, image: bytes) -> None:
     root.set(PREVIEW_ATTRIBUTE, base64.b64encode(image).decode("ascii"))
 
 
+def _scope_elements(scope: ET.Element) -> Iterator[ET.Element]:
+    """Yield elements of one ID scope, skipping nested submarine scopes."""
+    for child in scope:
+        yield from _walk_scope(child)
+
+
+def _walk_scope(element: ET.Element) -> Iterator[ET.Element]:
+    """Yield an element and its descendants up to the next scope boundary."""
+    yield element
+    if element.tag in SCOPE_TAGS:
+        return
+    for child in element:
+        yield from _walk_scope(child)
+
+
+def _strip_ids_and_references(root: ET.Element) -> None:
+    """Move entity IDs and references into ordered lists on each scope element.
+
+    Elements keep empty placeholders so packing knows which elements carry a
+    value and in which order. Values are moved verbatim, so packing restores
+    the original numbering.
+
+    Args:
+        root: Root element of a submarine XML document. It is modified in
+            place.
+    """
+    for scope in (root, *root.iter("LinkedSubmarine")):
+        ids: list[str] = []
+        references: dict[str, list[str]] = {}
+        for element in _scope_elements(scope):
+            if ID_ATTRIBUTE in element.attrib:
+                ids.append(element.get(ID_ATTRIBUTE) or "")
+                element.set(ID_ATTRIBUTE, "")
+            for name in REFERENCE_ATTRIBUTES:
+                if name in element.attrib:
+                    references.setdefault(name, []).append(element.get(name) or "")
+                    element.set(name, "")
+        if ids:
+            scope.set(ID_LIST_ATTRIBUTE, LIST_SEPARATOR.join(ids))
+        for name, values in references.items():
+            scope.set(f"{REFERENCE_LIST_PREFIX}{name}", LIST_SEPARATOR.join(values))
+
+
+def _restore_ids_and_references(root: ET.Element) -> None:
+    """Restore entity IDs and references from the ordered scope lists.
+
+    Args:
+        root: Root element of a submarine XML document. It is modified in
+            place.
+
+    Raises:
+        SubFileError: If an element placeholder count does not match the length
+            of the corresponding list.
+    """
+    for scope in (root, *root.iter("LinkedSubmarine")):
+        ids_text: str | None = scope.attrib.pop(ID_LIST_ATTRIBUTE, None)
+        ids: list[str] | None = (
+            ids_text.split(LIST_SEPARATOR) if ids_text is not None else None
+        )
+        references: dict[str, list[str]] = {}
+        for name in REFERENCE_ATTRIBUTES:
+            text: str | None = scope.attrib.pop(
+                f"{REFERENCE_LIST_PREFIX}{name}",
+                None,
+            )
+            if text is not None:
+                references[name] = text.split(LIST_SEPARATOR)
+
+        elements: list[ET.Element] = list(_scope_elements(scope))
+        if ids is not None:
+            placeholders: int = sum(
+                1 for element in elements if ID_ATTRIBUTE in element.attrib
+            )
+            if placeholders != len(ids):
+                raise SubFileError(
+                    t(
+                        "err.list_mismatch",
+                        name=ID_ATTRIBUTE,
+                        placeholders=placeholders,
+                        values=len(ids),
+                    )
+                )
+        for name, values in references.items():
+            placeholders = sum(1 for element in elements if name in element.attrib)
+            if placeholders != len(values):
+                raise SubFileError(
+                    t(
+                        "err.list_mismatch",
+                        name=name,
+                        placeholders=placeholders,
+                        values=len(values),
+                    )
+                )
+
+        id_index: int = 0
+        ref_indexes: dict[str, int] = {}
+        for element in elements:
+            if ids is not None and ID_ATTRIBUTE in element.attrib:
+                element.set(ID_ATTRIBUTE, ids[id_index])
+                id_index += 1
+            for name, values in references.items():
+                if name not in element.attrib:
+                    continue
+                index: int = ref_indexes.get(name, 0)
+                element.set(name, values[index])
+                ref_indexes[name] = index + 1
+
+
 def export_sub(
     src: Path,
     out_dir: Path | None = None,
@@ -211,6 +339,8 @@ def export_sub(
     root.attrib.pop(PREVIEW_LINK_ATTRIBUTE, None)
     if preview_path is not None:
         root.set(PREVIEW_LINK_ATTRIBUTE, preview_path.name)
+
+    _strip_ids_and_references(root)
 
     canonical: str = serialize_xml(
         root,
@@ -280,6 +410,8 @@ def pack_sub(
 
     root: ET.Element = parse_xml(decode_xml(raw))
     _require_submarine_root(root)
+
+    _restore_ids_and_references(root)
 
     link = root.attrib.pop(PREVIEW_LINK_ATTRIBUTE, None)
     if PREVIEW_ATTRIBUTE not in root.attrib:
