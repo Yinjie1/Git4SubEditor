@@ -107,7 +107,7 @@ git4subeditor init
   <gitRepo>../..</gitRepo>
   <modRoot>../..</modRoot>
   <submarines>
-    <submarine name="自定义名称" path="../../test/Git test.sub" preview="../../test/Git test.png" hash="..." />
+    <submarine path="../../test/Git test.sub" preview="../../test/Git test.png" hash="..." wayPoint="false" />
     <submarine path="../Git test2.sub" preview="../Git test2.png" hash="..." />
     <submarine path="Git test3.sub" preview="Git test3.png" hash="..." />
     <submarine path="tttt/Git test3.sub" preview="tttt/Git test4.png" hash="..." />
@@ -115,6 +115,7 @@ git4subeditor init
   <update latest="0.2.11" lastCheck="2026111400" interval="24" />
 </git4subeditor>
 ```
+`wayPoint` 控制导出时是否保留路径点: 缺省或 `false` 时自动清除路径点, `true` 时保留.
 ### 2. 交互模式
 该程序提供 CLI 模式和交互模式, 前者适合 ai 使用, 后者提供了人类可读的界面, 并且交互逻辑更加简单, 还提供了命令补全和历史记录功能, 运行以下命令启动交互模式:
 ```bash
